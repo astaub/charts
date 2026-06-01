@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { readFileSync, realpathSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { renderBarChart, renderBigNumber, renderFilterSummary, renderFunnelBars, renderLineChart, renderRetentionHeatmap, renderScatterPlot, renderSparkline, renderStackedBarChart, renderTable, renderWaterfallChart, } from './cli-viz/index.js';
+import { renderBarChart, renderBigNumber, renderFilterSummary, renderFunnelBars, renderGroupedBarChart, renderLineChart, renderRetentionHeatmap, renderScatterPlot, renderSparkline, renderStackedBarChart, renderTable, renderWaterfallChart, } from './cli-viz/index.js';
 import { verifyIntegrity, wrapWithIntegrity } from './integrity.js';
 // Package version is read at build time and inlined by tsc. The version is
 // embedded into integrity markers so verify can tell which renderer produced
@@ -40,6 +40,7 @@ const CHARTS = new Set([
     'bignumber',
     'filters',
     'funnel',
+    'grouped',
     'line',
     'retention',
     'scatter',
@@ -223,6 +224,18 @@ export function parseAgentVizArgs(argv) {
             (args.vlines ??= []).push(parseVlineSpec(arg.slice('--vline='.length)));
             continue;
         }
+        if (arg === '--marker') {
+            const value = argv[index + 1];
+            if (!value)
+                throw new Error('--marker requires a key=value spec');
+            (args.markers ??= []).push(parseMarkerSpec(value));
+            index += 1;
+            continue;
+        }
+        if (arg.startsWith('--marker=')) {
+            (args.markers ??= []).push(parseMarkerSpec(arg.slice('--marker='.length)));
+            continue;
+        }
         if (arg === '--shade') {
             const value = argv[index + 1];
             if (!value)
@@ -315,6 +328,15 @@ function parseVlineSpec(spec) {
     }
     return vline;
 }
+function parseMarkerSpec(spec) {
+    const parts = parseKeyValueSpec(spec);
+    if (!parts.at)
+        throw new Error('--marker requires at=<bucket>');
+    const marker = { at: parts.at };
+    if (parts.label !== undefined)
+        marker.label = parts.label;
+    return marker;
+}
 function parseShadeSpec(spec) {
     const parts = parseKeyValueSpec(spec);
     if (!parts.from || !parts.to)
@@ -392,6 +414,14 @@ async function main() {
         }
         const input = args.file ? readFileSync(args.file, 'utf8') : await readStdin();
         const spec = JSON.parse(input);
+        // `--marker` is folded into the spec's options so it both renders and
+        // round-trips through the integrity block (which canonicalizes options).
+        // Markers only apply to the grouped chart; on any other chart they are
+        // ignored rather than silently corrupting an unrelated options bag.
+        if (args.markers !== undefined && (args.chart ?? (isRecord(spec) ? spec.chart : undefined)) === 'grouped') {
+            const existing = isRecord(spec) && isRecord(spec.options) ? spec.options : {};
+            spec.options = { ...existing, markers: args.markers };
+        }
         const lineOverrides = {};
         if (args.vlines !== undefined)
             lineOverrides.vlines = args.vlines;
@@ -427,6 +457,8 @@ function renderChart(spec, chart, options) {
             });
         case 'funnel':
             return renderFunnelBars(arrayFrom(spec.steps ?? spec.data, 'steps'), options);
+        case 'grouped':
+            return renderGroupedBarChart(arrayFrom(spec.buckets ?? spec.data, 'buckets'), options);
         case 'line':
             return renderLineChart(arrayFrom(spec.series ?? spec.data, 'series'), options);
         case 'retention':
@@ -524,7 +556,7 @@ Usage:
   cat chart.txt | agentviz verify
 
 Charts:
-  bar, bignumber, filters, funnel, line, retention, scatter, sparkline, stacked, table, waterfall
+  bar, bignumber, filters, funnel, grouped, line, retention, scatter, sparkline, stacked, table, waterfall
 
 Line chart flags (repeatable where noted):
   --vline at=<bucket>[,label=<text>][,position=above|below]
@@ -532,6 +564,9 @@ Line chart flags (repeatable where noted):
   --footer <text>
   --xaxis-labels auto|stagger|skip:<N>
   --linestyle linear|step|markers-only|braille
+
+Grouped bar flags (repeatable):
+  --marker at=<bucket>[,label=<text>]   vertical rule at a bucket (e.g. a ship date)
 
 Integrity:
   --integrity   Wrap output in a tamper-evident marker block with sha256
@@ -548,6 +583,9 @@ Examples:
 
 Line input:
   {"series":[{"label":"Page views","points":[{"label":"Mon","value":12}]}]}
+
+Grouped input:
+  {"buckets":[{"label":"W1","bars":[{"key":"followed","value":40},{"key":"signed_up","value":12}]}]}
 
 Funnel input:
   {"steps":[{"label":"Visited","count":120},{"label":"Paid","count":18}]}

@@ -1,5 +1,25 @@
 # @staub/agentviz CHANGELOG
 
+## Unreleased
+
+- feat(grouped): new `renderGroupedBarChart` API and `grouped` CLI chart — the
+  non-stacked complement to `renderStackedBarChart`, drawing multiple series
+  side-by-side per bucket for trends with more than one metric per period
+  (e.g. followed-vs-signed-up per week). Each series gets a distinct fill
+  symbol keyed to the legend; supports `seriesOrder`, `valueFormat`/`unit`,
+  `height`, and `footer`. Below 54 columns (or when groups can't fit) it falls
+  back to a per-bucket block listing. New `@staub/agentviz/grouped` subpath
+  export.
+- feat(grouped): `markers: [{ at, label }]` (`--marker at=<bucket>[,label=...]`)
+  draws a vertical annotation rule at a bucket — the bar-chart analogue of
+  `vlines` on line charts, for "shipped on <date>" before/after-release lines.
+  Bars paint over the rule on a collision; the label prints above the plot;
+  unmatched buckets are skipped; at narrow widths labelled markers collapse to
+  a `Marks:` line. Folds into the integrity block so it round-trips through
+  `agentviz verify`.
+- All additions are optional and backwards compatible; default output is
+  unchanged.
+
 ## 0.2.0 (2026-05-28)
 
 - feat(bignumber): new `renderBigNumber` API and `bignumber` CLI chart — a

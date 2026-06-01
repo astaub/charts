@@ -32,6 +32,10 @@
       "types": "./dist/cli-viz/stacked.d.ts",
       "default": "./dist/cli-viz/stacked.js"
     },
+    "./grouped": {
+      "types": "./dist/cli-viz/grouped.d.ts",
+      "default": "./dist/cli-viz/grouped.js"
+    },
     "./waterfall": {
       "types": "./dist/cli-viz/waterfall.d.ts",
       "default": "./dist/cli-viz/waterfall.js"
