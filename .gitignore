@@ -1,0 +1,4 @@
+node_modules/
+coverage/
+# package-lock.json is tracked for deterministic publish builds (#1647).
+# Do not ignore it.

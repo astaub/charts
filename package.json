@@ -1,0 +1,60 @@
+{
+  "name": "@staub/agentviz",
+  "version": "0.2.0",
+  "private": true,
+  "description": "Terminal data visualizations that agents can show humans.",
+  "license": "MIT",
+  "type": "module",
+  "keywords": [
+    "agents",
+    "cli",
+    "terminal",
+    "charts",
+    "visualization"
+  ],
+  "author": "Staub",
+  "bin": {
+    "agentviz": "./dist/cli.js"
+  },
+  "main": "./dist/cli-viz/index.js",
+  "types": "./dist/cli-viz/index.d.ts",
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/cli-viz/index.d.ts",
+      "default": "./dist/cli-viz/index.js"
+    },
+    "./stacked": {
+      "types": "./dist/cli-viz/stacked.d.ts",
+      "default": "./dist/cli-viz/stacked.js"
+    },
+    "./waterfall": {
+      "types": "./dist/cli-viz/waterfall.d.ts",
+      "default": "./dist/cli-viz/waterfall.js"
+    },
+    "./scatter": {
+      "types": "./dist/cli-viz/scatter.d.ts",
+      "default": "./dist/cli-viz/scatter.js"
+    },
+    "./bignumber": {
+      "types": "./dist/cli-viz/bignumber.d.ts",
+      "default": "./dist/cli-viz/bignumber.js"
+    }
+  },
+  "scripts": {
+    "prepack": "npm run build",
+    "example": "bun examples/posthog-shaped.ts",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "build": "tsc -p tsconfig.json"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "typescript": "^5.0.0",
+    "vitest": "^3.0.0"
+  }
+}
