@@ -1,6 +1,6 @@
 # @staub/agentviz CHANGELOG
 
-## Unreleased
+## 0.3.0 (2026-06-02)
 
 - feat(grouped): new `renderGroupedBarChart` API and `grouped` CLI chart — the
   non-stacked complement to `renderStackedBarChart`, drawing multiple series
