@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { type BarChartDatum, type FilterDatum, type FunnelStepDatum, type GroupedBarMarker, type LineChartLineStyle, type LineChartSeries, type LineChartShade, type LineChartVline, type LineChartXAxisLabels, type RetentionCohortDatum, type ScatterPlotPoint, type StackedBarBucketDatum, type SuggestedFilterDatum, type TableColumn, type TableRow, type WaterfallStep } from './cli-viz/index.js';
-type ChartKind = 'bar' | 'bignumber' | 'filters' | 'funnel' | 'grouped' | 'line' | 'retention' | 'scatter' | 'sparkline' | 'stacked' | 'table' | 'waterfall';
+type ChartKind = 'bar' | 'bignumber' | 'dashboard' | 'filters' | 'funnel' | 'grouped' | 'line' | 'retention' | 'scatter' | 'sparkline' | 'stacked' | 'table' | 'waterfall';
 interface ParsedArgs {
     chart?: ChartKind;
     file?: string;

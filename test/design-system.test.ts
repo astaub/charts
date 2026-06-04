@@ -21,6 +21,7 @@ import {
   resolveColor,
   stripAnsi,
 } from '../src/cli-viz/index';
+import { renderDashboard } from '../src/cli-viz/dashboard';
 
 const ESC = '\u001B';
 
@@ -260,5 +261,34 @@ describe('design system — growth primitives (delta + sparkline)', () => {
     const colored = inlineSparkline(color, [1, 3, 2, 5, 4, 8]);
     expect(colored).toContain(ESC);
     expect([...stripAnsi(colored)].length).toBe(6);
+  });
+});
+
+describe('design system — dashboard composition', () => {
+  const spec = [
+    { panels: [
+      { chart: 'bignumber', value: 1234, options: { label: 'Signups', previous: 1100, sparkline: [900, 1000, 1234] } },
+      { chart: 'bignumber', value: 0.031, options: { label: 'Churn', format: 'percent', previous: 0.039, goodDirection: 'down' } },
+    ] },
+    { panels: [
+      { chart: 'funnel', title: 'Funnel', steps: [{ label: 'Visited', count: 100 }, { label: 'Paid', count: 12 }] },
+      { chart: 'retention', title: 'Retention', cohorts: [{ label: 'C1', size: 100, periods: [{ label: 'W0', rate: 1 }, { label: 'W1', rate: 0.5 }] }] },
+    ] },
+  ];
+
+  it('composes a grid and no composed line exceeds the dashboard width', () => {
+    const out = renderDashboard(spec, { width: 120, title: 'Overview', color: 'always' });
+    expect(out).toContain('Overview');
+    expect(out).toContain('Signups');
+    expect(out).toContain('Funnel');
+    for (const line of out.split('\n')) expect([...stripAnsi(line)].length).toBeLessThanOrEqual(120);
+  });
+
+  it('degrades to clean monochrome (no ANSI) when color is off', () => {
+    const out = renderDashboard(spec, { width: 120, color: 'never' });
+    expect(out).not.toContain(ESC);
+    // panels still render side-by-side (two borders on a KPI-row line)
+    const kpiRow = out.split('\n').find((l: string) => l.includes('Signups'));
+    expect(kpiRow && kpiRow.includes('Churn')).toBe(true);
   });
 });

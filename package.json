@@ -47,6 +47,10 @@
     "./bignumber": {
       "types": "./dist/cli-viz/bignumber.d.ts",
       "default": "./dist/cli-viz/bignumber.js"
+    },
+    "./dashboard": {
+      "types": "./dist/cli-viz/dashboard.d.ts",
+      "default": "./dist/cli-viz/dashboard.js"
     }
   },
   "scripts": {

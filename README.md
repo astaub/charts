@@ -1,10 +1,39 @@
 # agentviz
 
-Terminal charts agents can show humans.
+**Beautiful charts inside your CLI.**
 
-`agentviz` renders compact terminal reports from structured data. It is for
-agents that need to explain evidence in a CLI, pull request comment, transcript,
-or generated report without dumping raw CSV or hiding denominators.
+`agentviz` is a terminal-chart *design system*: every chart kind draws from one
+shared set of components (bordered panels, a canonical palette, color-coded
+labels, sub-cell glyphs), so output comes out beautiful and legible without the
+caller tuning anything — and composes into full dashboards. Truecolor on a TTY;
+clean monochrome Unicode when piped or captured (the common case inside coding
+agents like Claude Code / Codex). It's for agents that need to show evidence in a
+CLI, PR comment, or transcript without dumping raw CSV or hiding denominators.
+
+## Gallery
+
+A composed growth dashboard — KPI tiles with semantic deltas, a trend with a
+goal line, a funnel, and a retention heatmap, all from one spec:
+
+![dashboard](docs/screenshots/dashboard.png)
+
+KPI tiles (semantic green-good / red-bad deltas + sparklines) and a quadrant
+scatter (winners green / laggards red):
+
+![KPI tiles](docs/screenshots/kpi-tiles.png)
+![scatter](docs/screenshots/scatter_after.png)
+
+Funnel, bar, line (braille + area), retention heatmap, waterfall MRR-bridge:
+
+![funnel](docs/screenshots/funnel-after.png)
+![bar](docs/screenshots/bar-after.png)
+![line braille](docs/screenshots/line_braille.png)
+![retention](docs/screenshots/retention_after.png)
+![waterfall](docs/screenshots/waterfall_after.png)
+
+```sh
+agentviz dashboard fixtures/dashboard-growth.json --width 118
+```
 
 ## Status
 

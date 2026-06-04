@@ -31,7 +31,7 @@ FORCE_COLOR=1 bun src/cli.ts funnel fixtures/funnel-checkout.json > out.ans
 | `waterfall-mrr-bridge.json` | waterfall | MRR bridge (gains green / drops red) |
 | `bignumber-signups.json` | bignumber | KPI tile (value · delta · sparkline) |
 | `scatter-quadrant.json` | scatter | quadrant analysis (winners green / laggards red) |
+| `dashboard-growth.json` | dashboard | growth board: KPI tiles + trend + funnel + retention |
 
-More kinds (line, sparkline, heatmap/retention, scatter, stacked, grouped,
-waterfall, dashboards) land alongside the renderers that adopt the shared
-component system in subsequent PRs.
+Every chart kind is on the shared component system; `dashboard-growth` shows
+them composed into one multi-panel view.

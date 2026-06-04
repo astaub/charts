@@ -2,6 +2,19 @@
 
 ## Unreleased
 
+- feat(dashboard): **terminal dashboards** — compose KPI tiles + charts into one
+  multi-panel grid. New `cli-viz/dashboard.ts` (`renderDashboard`) + a
+  `dashboard` CLI kind + `@staub/agentviz/dashboard` subpath export. A spec is
+  rows of panels; each panel is any chart kind (bignumber/line/funnel/retention/
+  bar/…). The dashboard splits each row's width across its cells, renders each at
+  that width (inheriting the board's color decision), and lays them out
+  side-by-side — every cell is already a self-contained bordered panel, so the
+  grid just works and reads as one view. Optional board `title`/`subtitle`
+  heading. Truecolor on a TTY, clean monochrome when piped. New
+  `dashboard-growth` showcase fixture (north-star KPI row · trend-vs-goal ·
+  funnel + retention) and `docs/screenshots/dashboard.png`. This completes the
+  design system: every kind + the growth features compose into one product.
+
 - feat(scatter): rebuilt the quadrant scatter plot on the shared component
   system — a titled `panel`, **points colored by quadrant** (top-right
   high/high = winners green, bottom-left low/low = laggards red, mixed = accent),

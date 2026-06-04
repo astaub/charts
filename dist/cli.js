@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { renderBarChart, renderBigNumber, renderFilterSummary, renderFunnelBars, renderGroupedBarChart, renderLineChart, renderRetentionHeatmap, renderScatterPlot, renderSparkline, renderStackedBarChart, renderTable, renderWaterfallChart, } from './cli-viz/index.js';
 import { verifyIntegrity, wrapWithIntegrity } from './integrity.js';
 import { resolveCliColorMode } from './cli-viz/theme.js';
+import { renderDashboard } from './cli-viz/dashboard.js';
 // Package version is read at build time and inlined by tsc. The version is
 // embedded into integrity markers so verify can tell which renderer produced
 // the block, even if the consumer is on a different agentviz release.
@@ -39,6 +40,7 @@ function readAgentVizVersion() {
 const CHARTS = new Set([
     'bar',
     'bignumber',
+    'dashboard',
     'filters',
     'funnel',
     'grouped',
@@ -52,7 +54,7 @@ const CHARTS = new Set([
 ]);
 // Charts rebuilt on the shared design-system panel (border/title live inside
 // the renderer). Grows as more kinds adopt the component set.
-const PANELED = new Set(['bar', 'funnel', 'line', 'retention', 'stacked', 'grouped', 'waterfall', 'bignumber', 'scatter']);
+const PANELED = new Set(['bar', 'funnel', 'line', 'retention', 'stacked', 'grouped', 'waterfall', 'bignumber', 'scatter', 'dashboard']);
 export function renderAgentVizSpec(spec, chartHint, cliWidth, lineOverrides = {}, extra = {}) {
     const objectSpec = normalizeSpec(spec);
     const chart = normalizeChart(chartHint ?? objectSpec.chart);
@@ -469,6 +471,8 @@ function renderChart(spec, chart, options) {
             return renderBarChart(arrayFrom(spec.rows ?? spec.data, 'rows'), options);
         case 'bignumber':
             return renderBigNumber(numberFrom(spec.value ?? spec.data, 'value'), options);
+        case 'dashboard':
+            return renderDashboard(arrayFrom(spec.rows ?? spec.data, 'rows'), options);
         case 'filters':
             return renderFilterSummary(arrayFrom(spec.filters ?? spec.data, 'filters'), {
                 ...options,

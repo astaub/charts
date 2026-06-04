@@ -1,0 +1,37 @@
+{
+  "chart": "dashboard",
+  "title": "Growth overview — Q3",
+  "subtitle": "north-star + supporting metrics · queried 2026-06-04",
+  "rows": [
+    {
+      "panels": [
+        { "chart": "bignumber", "value": 12840, "options": { "label": "Weekly signups", "previous": 11020, "goodDirection": "up", "sparkline": [9200, 9800, 10400, 11020, 11900, 12840] } },
+        { "chart": "bignumber", "value": 0.41, "options": { "label": "Activation rate", "format": "percent", "previous": 0.36, "goodDirection": "up", "sparkline": [0.31, 0.33, 0.35, 0.36, 0.39, 0.41] } },
+        { "chart": "bignumber", "value": 0.031, "options": { "label": "Weekly churn", "format": "percent", "previous": 0.039, "goodDirection": "down", "sparkline": [0.046, 0.043, 0.04, 0.039, 0.034, 0.031] } },
+        { "chart": "bignumber", "value": 184200, "options": { "label": "MRR", "unit": { "prefix": "$" }, "format": "compact", "previous": 168000, "goodDirection": "up", "sparkline": [151000, 158000, 162000, 168000, 176000, 184200] } }
+      ]
+    },
+    {
+      "panels": [
+        { "chart": "line", "title": "Weekly active users vs goal", "options": { "goal": 9000, "goalLabel": "Q3 target", "height": 8 },
+          "series": [
+            { "label": "Web", "points": [{ "label": "W1", "value": 4200 }, { "label": "W2", "value": 4810 }, { "label": "W3", "value": 5120 }, { "label": "W4", "value": 5980 }, { "label": "W5", "value": 6440 }, { "label": "W6", "value": 7210 }, { "label": "W7", "value": 7880 }, { "label": "W8", "value": 8540 }] },
+            { "label": "Mobile", "points": [{ "label": "W1", "value": 1800 }, { "label": "W2", "value": 2300 }, { "label": "W3", "value": 3020 }, { "label": "W4", "value": 3640 }, { "label": "W5", "value": 4100 }, { "label": "W6", "value": 4720 }, { "label": "W7", "value": 5380 }, { "label": "W8", "value": 6010 }] }
+          ]
+        }
+      ]
+    },
+    {
+      "panels": [
+        { "chart": "funnel", "title": "Activation funnel", "steps": [
+          { "label": "Visited", "count": 12840 }, { "label": "Signed up", "count": 4210 }, { "label": "Activated", "count": 2180 }, { "label": "Subscribed", "count": 890 }, { "label": "Renewed", "count": 410 }
+        ] },
+        { "chart": "retention", "title": "Weekly retention", "cohorts": [
+          { "label": "Jan W1", "size": 1240, "periods": [{ "label": "W0", "rate": 1 }, { "label": "W1", "rate": 0.62 }, { "label": "W2", "rate": 0.48 }, { "label": "W3", "rate": 0.41 }] },
+          { "label": "Jan W2", "size": 1380, "periods": [{ "label": "W0", "rate": 1 }, { "label": "W1", "rate": 0.58 }, { "label": "W2", "rate": 0.44 }] },
+          { "label": "Jan W3", "size": 1510, "periods": [{ "label": "W0", "rate": 1 }, { "label": "W1", "rate": 0.65 }] }
+        ] }
+      ]
+    }
+  ]
+}

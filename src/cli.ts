@@ -42,6 +42,7 @@ import {
 } from './cli-viz/index.js';
 import { verifyIntegrity, wrapWithIntegrity, type RendererCallback } from './integrity.js';
 import { resolveCliColorMode } from './cli-viz/theme.js';
+import { renderDashboard, type DashboardOptions, type DashboardRow } from './cli-viz/dashboard.js';
 
 // Package version is read at build time and inlined by tsc. The version is
 // embedded into integrity markers so verify can tell which renderer produced
@@ -76,6 +77,7 @@ function readAgentVizVersion(): string {
 type ChartKind =
   | 'bar'
   | 'bignumber'
+  | 'dashboard'
   | 'filters'
   | 'funnel'
   | 'grouped'
@@ -138,6 +140,7 @@ interface LineChartOverrides {
 const CHARTS = new Set<ChartKind>([
   'bar',
   'bignumber',
+  'dashboard',
   'filters',
   'funnel',
   'grouped',
@@ -152,7 +155,7 @@ const CHARTS = new Set<ChartKind>([
 
 // Charts rebuilt on the shared design-system panel (border/title live inside
 // the renderer). Grows as more kinds adopt the component set.
-const PANELED = new Set<ChartKind>(['bar', 'funnel', 'line', 'retention', 'stacked', 'grouped', 'waterfall', 'bignumber', 'scatter']);
+const PANELED = new Set<ChartKind>(['bar', 'funnel', 'line', 'retention', 'stacked', 'grouped', 'waterfall', 'bignumber', 'scatter', 'dashboard']);
 
 export interface RenderAgentVizSpecOptions {
   integrity?: boolean;
@@ -561,6 +564,8 @@ function renderChart(spec: AgentVizSpec, chart: ChartKind, options: Record<strin
       return renderBarChart(arrayFrom<BarChartDatum>(spec.rows ?? spec.data, 'rows'), options);
     case 'bignumber':
       return renderBigNumber(numberFrom(spec.value ?? spec.data, 'value'), options as BigNumberOptions);
+    case 'dashboard':
+      return renderDashboard(arrayFrom<DashboardRow>(spec.rows ?? spec.data, 'rows'), options as DashboardOptions);
     case 'filters':
       return renderFilterSummary(arrayFrom<FilterDatum>(spec.filters ?? spec.data, 'filters'), {
         ...options,
