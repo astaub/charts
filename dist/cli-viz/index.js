@@ -6,6 +6,7 @@ const SPARKLINE_BUCKETS = ['_', '▁', '▂', '▃', '▄', '▅', '▆', '▇',
 const HEAT_BUCKETS = ['.', '░', '▒', '▓', '█'];
 export { renderScatterPlot, } from './scatter.js';
 export { renderStackedBarChart, } from './stacked.js';
+export { renderGroupedBarChart, } from './grouped.js';
 export { renderWaterfallChart, } from './waterfall.js';
 export { renderBigNumber, } from './bignumber.js';
 import { BrailleCanvas } from './braille.js';

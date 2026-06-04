@@ -19,6 +19,15 @@ export {
   type StackedBarSegmentDatum,
 } from './stacked.js';
 export {
+  renderGroupedBarChart,
+  type GroupedBarBucketDatum,
+  type GroupedBarChartOptions,
+  type GroupedBarMarker,
+  type GroupedBarSeriesDatum,
+  type GroupedBarUnit,
+  type GroupedBarValueFormat,
+} from './grouped.js';
+export {
   renderWaterfallChart,
   type WaterfallChartOptions,
   type WaterfallStep,

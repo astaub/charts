@@ -6,6 +6,7 @@ import {
   renderBigNumber,
   renderFilterSummary,
   renderFunnelBars,
+  renderGroupedBarChart,
   renderLineChart,
   renderRetentionHeatmap,
   renderScatterPlot,
@@ -18,6 +19,9 @@ import {
   type FilterDatum,
   type FilterSummaryOptions,
   type FunnelStepDatum,
+  type GroupedBarBucketDatum,
+  type GroupedBarChartOptions,
+  type GroupedBarMarker,
   type LineChartLineStyle,
   type LineChartSeries,
   type LineChartShade,
@@ -73,6 +77,7 @@ type ChartKind =
   | 'bignumber'
   | 'filters'
   | 'funnel'
+  | 'grouped'
   | 'line'
   | 'retention'
   | 'scatter'
@@ -87,6 +92,7 @@ interface ParsedArgs {
   width?: number;
   help?: boolean;
   vlines?: LineChartVline[];
+  markers?: GroupedBarMarker[];
   shades?: LineChartShade[];
   footer?: string;
   xAxisLabels?: LineChartXAxisLabels;
@@ -133,6 +139,7 @@ const CHARTS = new Set<ChartKind>([
   'bignumber',
   'filters',
   'funnel',
+  'grouped',
   'line',
   'retention',
   'scatter',
@@ -312,6 +319,19 @@ export function parseAgentVizArgs(argv: string[]): ParsedArgs {
       continue;
     }
 
+    if (arg === '--marker') {
+      const value = argv[index + 1];
+      if (!value) throw new Error('--marker requires a key=value spec');
+      (args.markers ??= []).push(parseMarkerSpec(value));
+      index += 1;
+      continue;
+    }
+
+    if (arg.startsWith('--marker=')) {
+      (args.markers ??= []).push(parseMarkerSpec(arg.slice('--marker='.length)));
+      continue;
+    }
+
     if (arg === '--shade') {
       const value = argv[index + 1];
       if (!value) throw new Error('--shade requires a key=value spec');
@@ -409,6 +429,14 @@ function parseVlineSpec(spec: string): LineChartVline {
   return vline;
 }
 
+function parseMarkerSpec(spec: string): GroupedBarMarker {
+  const parts = parseKeyValueSpec(spec);
+  if (!parts.at) throw new Error('--marker requires at=<bucket>');
+  const marker: GroupedBarMarker = { at: parts.at };
+  if (parts.label !== undefined) marker.label = parts.label;
+  return marker;
+}
+
 function parseShadeSpec(spec: string): LineChartShade {
   const parts = parseKeyValueSpec(spec);
   if (!parts.from || !parts.to) throw new Error('--shade requires from=<bucket>,to=<bucket>');
@@ -483,6 +511,14 @@ async function main(): Promise<void> {
 
     const input = args.file ? readFileSync(args.file, 'utf8') : await readStdin();
     const spec = JSON.parse(input);
+    // `--marker` is folded into the spec's options so it both renders and
+    // round-trips through the integrity block (which canonicalizes options).
+    // Markers only apply to the grouped chart; on any other chart they are
+    // ignored rather than silently corrupting an unrelated options bag.
+    if (args.markers !== undefined && (args.chart ?? (isRecord(spec) ? spec.chart : undefined)) === 'grouped') {
+      const existing = isRecord(spec) && isRecord(spec.options) ? spec.options : {};
+      spec.options = { ...existing, markers: args.markers };
+    }
     const lineOverrides: LineChartOverrides = {};
     if (args.vlines !== undefined) lineOverrides.vlines = args.vlines;
     if (args.shades !== undefined) lineOverrides.shades = args.shades;
@@ -512,6 +548,8 @@ function renderChart(spec: AgentVizSpec, chart: ChartKind, options: Record<strin
       } as FilterSummaryOptions);
     case 'funnel':
       return renderFunnelBars(arrayFrom<FunnelStepDatum>(spec.steps ?? spec.data, 'steps'), options);
+    case 'grouped':
+      return renderGroupedBarChart(arrayFrom<GroupedBarBucketDatum>(spec.buckets ?? spec.data, 'buckets'), options as GroupedBarChartOptions);
     case 'line':
       return renderLineChart(arrayFrom<LineChartSeries>(spec.series ?? spec.data, 'series'), options);
     case 'retention':
@@ -614,7 +652,7 @@ Usage:
   cat chart.txt | agentviz verify
 
 Charts:
-  bar, bignumber, filters, funnel, line, retention, scatter, sparkline, stacked, table, waterfall
+  bar, bignumber, filters, funnel, grouped, line, retention, scatter, sparkline, stacked, table, waterfall
 
 Line chart flags (repeatable where noted):
   --vline at=<bucket>[,label=<text>][,position=above|below]
@@ -622,6 +660,9 @@ Line chart flags (repeatable where noted):
   --footer <text>
   --xaxis-labels auto|stagger|skip:<N>
   --linestyle linear|step|markers-only|braille
+
+Grouped bar flags (repeatable):
+  --marker at=<bucket>[,label=<text>]   vertical rule at a bucket (e.g. a ship date)
 
 Integrity:
   --integrity   Wrap output in a tamper-evident marker block with sha256
@@ -638,6 +679,9 @@ Examples:
 
 Line input:
   {"series":[{"label":"Page views","points":[{"label":"Mon","value":12}]}]}
+
+Grouped input:
+  {"buckets":[{"label":"W1","bars":[{"key":"followed","value":40},{"key":"signed_up","value":12}]}]}
 
 Funnel input:
   {"steps":[{"label":"Visited","count":120},{"label":"Paid","count":18}]}

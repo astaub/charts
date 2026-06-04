@@ -66,6 +66,7 @@ Supported charts:
 - `bignumber`
 - `filters`
 - `funnel`
+- `grouped`
 - `line`
 - `retention`
 - `scatter`
@@ -131,6 +132,43 @@ Narrow-width behavior (`width < 54`): the chart falls back to per-series sparkli
 - Labelled `shades` collapse into a single `Shaded: ░ from-to=label  ...` line using the same pattern character as the full chart.
 
 Unlabelled vlines and shades are dropped at narrow widths since their position cannot be drawn.
+
+### Grouped bar charts
+
+`renderGroupedBarChart` draws multiple series side-by-side per bucket — the
+non-stacked complement to `renderStackedBarChart`. Use it for a trend with more
+than one metric per period (e.g. followed-vs-signed-up per week). Each series
+gets its own fill symbol (`A`, `B`, …) keyed to the legend. All options are
+optional and backwards compatible.
+
+```ts
+import { renderGroupedBarChart } from "@staub/agentviz";
+
+console.log(renderGroupedBarChart([
+  { label: "W1", bars: [{ key: "followed", label: "Followed", value: 40 }, { key: "signed_up", label: "Signed up", value: 12 }] },
+  { label: "W2", bars: [{ key: "followed", label: "Followed", value: 55 }, { key: "signed_up", label: "Signed up", value: 20 }] },
+  { label: "W3", bars: [{ key: "followed", label: "Followed", value: 70 }, { key: "signed_up", label: "Signed up", value: 38 }] },
+], {
+  width: 72,
+  markers: [{ at: "W2", label: "shipped" }],   // vertical rule at a bucket
+  seriesOrder: ["followed", "signed_up"],        // explicit left-to-right order
+  // valueFormat: "percent" / unit: { prefix: "$" } / footer / height
+}));
+```
+
+CLI:
+
+```sh
+agentviz grouped trend.json --width 72 --marker at=W2,label=shipped --footer "queried 2026-06-01"
+```
+
+- `markers` (`--marker at=<bucket>[,label=<text>]`) — a vertical rule drawn at the bucket whose label matches `at`; bars paint over it on a collision, and the label prints above the plot. Unmatched `at` values are silently skipped. This is the bar-chart analogue of `vlines` on line charts.
+- `seriesOrder` — explicit left-to-right series order by key; unlisted keys follow in first-seen order.
+- `valueFormat` / `unit` / `footer` / `height` behave as on the line chart.
+
+Narrow-width behavior (`width < 54`, or when the groups can't fit): the chart
+falls back to a per-bucket block listing of each series value, and labelled
+markers collapse into a single `Marks: at=label  …` line so nothing is dropped.
 
 ### Goal lines & y-axis units
 
@@ -262,6 +300,7 @@ to prior releases.
 - filter summaries and suggested filters
 - retention heatmaps
 - stacked bars
+- grouped (side-by-side) bars with vertical markers
 - waterfall charts
 - scatter plots
 
