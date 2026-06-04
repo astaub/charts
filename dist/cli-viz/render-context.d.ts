@@ -1,4 +1,4 @@
-import { type ColorMode } from './theme.js';
+import { type AppearanceMode, type ColorMode } from './theme.js';
 import type { RenderCtx } from './components.js';
 export declare function stripAnsi(value: string): string;
 /** Terminal display columns for a single code point (0 / 1 / 2). */
@@ -18,10 +18,16 @@ export interface RenderContextOptions {
     color?: ColorMode;
     isTTY?: boolean;
     env?: Record<string, string | undefined>;
+    /** Background appearance: 'light' | 'dark' | 'auto'. Default 'dark'. */
+    appearance?: AppearanceMode;
 }
 /**
  * Bundle the color decision and the (single) width helpers into the context the
  * shared components draw with. Every paneled chart builds one of these so
  * chrome, color, and width math stay consistent across kinds.
+ *
+ * This is also the single place appearance is activated: resolving it here (and
+ * flipping the active palette) means every kind that builds a render context
+ * adapts to a light/dark background with no per-kind change.
  */
 export declare function makeRenderCtx(options?: RenderContextOptions): RenderCtx;

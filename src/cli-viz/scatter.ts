@@ -1,4 +1,4 @@
-import { THEME, dim, fg, type RGB } from './theme.js';
+import { THEME, bodyText, fg, getAppearance, mutedText, type RGB } from './theme.js';
 import { panel } from './components.js';
 import { makeRenderCtx } from './render-context.js';
 import type { RenderCtx } from './components.js';
@@ -114,7 +114,7 @@ export function renderScatterPlot(points: ScatterPlotPoint[], options: ScatterPl
     colorGrid[row]![column] = quadrantColor(point.x, point.y, xThreshold, yThreshold);
   }
 
-  const dimText = (text: string) => (ctx.color ? dim(text) : text);
+  const dimText = (text: string) => (ctx.color ? mutedText(text) : text);
   // Color a plotted grid row: threshold cross in the warn accent (a reference
   // line, like a goal), points in their quadrant color, collisions muted.
   const colorRow = (row: number): string => {
@@ -142,7 +142,7 @@ export function renderScatterPlot(points: ScatterPlotPoint[], options: ScatterPl
 
   if (includeTable) {
     body.push('');
-    body.push(...renderCoordinateTable(cleanPoints, { ...renderContext, width: contentWidth }));
+    body.push(...renderCoordinateTable(cleanPoints, { ...renderContext, width: contentWidth, color: ctx.color }));
   }
 
   const title = sanitizeText(options.title ?? `${yLabel} vs ${xLabel}`);
@@ -192,8 +192,16 @@ function renderCoordinateTable(
     xThreshold: number;
     yThreshold: number;
     options: ScatterPlotOptions;
+    color?: boolean;
   },
 ): string[] {
+  // Secondary table text needs explicit color on a light background (the muted
+  // header/quadrant, the body-text rows) — uncolored text falls back to the
+  // terminal/freeze default fg, which is pale on white. On dark the table was
+  // (and stays) uncolored; bodyText is a no-op on dark, and muted is applied
+  // light-only, so dark output is byte-identical. Mono leaves everything plain.
+  const muted = (text: string) => (context.color && getAppearance() === 'light' ? mutedText(text) : text);
+  const primary = (text: string) => (context.color ? bodyText(text) : text);
   const labelWidth = Math.min(24, Math.max(6, longest(points.map((point) => point.label))));
   const xValues = points.map((point) => formatValue(point.x, context.xFormat));
   const yValues = points.map((point) => formatValue(point.y, context.yFormat));
@@ -208,30 +216,34 @@ function renderCoordinateTable(
   const quadrantWidth = Math.max(8, Math.min(Math.max(visualWidth(quadrantHeader), longest(quadrantValues)), remaining));
 
   const lines = [
-    [
-      padCell('ID', 2, 'left'),
-      padCell('Label', labelWidth, 'left'),
-      padCell(context.xLabel, xWidth, 'right'),
-      padCell(context.yLabel, yWidth, 'right'),
-      padCell(quadrantHeader, quadrantWidth, 'left'),
-    ].join('  '),
-    [
-      repeat('-', 2),
-      repeat('-', labelWidth),
-      repeat('-', xWidth),
-      repeat('-', yWidth),
-      repeat('-', quadrantWidth),
-    ].join('  '),
+    muted(
+      [
+        padCell('ID', 2, 'left'),
+        padCell('Label', labelWidth, 'left'),
+        padCell(context.xLabel, xWidth, 'right'),
+        padCell(context.yLabel, yWidth, 'right'),
+        padCell(quadrantHeader, quadrantWidth, 'left'),
+      ].join('  '),
+    ),
+    muted(
+      [
+        repeat('-', 2),
+        repeat('-', labelWidth),
+        repeat('-', xWidth),
+        repeat('-', yWidth),
+        repeat('-', quadrantWidth),
+      ].join('  '),
+    ),
   ];
 
   for (const point of points) {
     lines.push(
       [
-        padCell(point.id, 2, 'left'),
-        padCell(point.label, labelWidth, 'left'),
-        padCell(formatValue(point.x, context.xFormat), xWidth, 'right'),
-        padCell(formatValue(point.y, context.yFormat), yWidth, 'right'),
-        padCell(quadrantLabel(point, context.xThreshold, context.yThreshold, context.options), quadrantWidth, 'left'),
+        primary(padCell(point.id, 2, 'left')),
+        primary(padCell(point.label, labelWidth, 'left')),
+        primary(padCell(formatValue(point.x, context.xFormat), xWidth, 'right')),
+        primary(padCell(formatValue(point.y, context.yFormat), yWidth, 'right')),
+        muted(padCell(quadrantLabel(point, context.xThreshold, context.yThreshold, context.options), quadrantWidth, 'left')),
       ].join('  '),
     );
   }

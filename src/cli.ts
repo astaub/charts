@@ -41,7 +41,7 @@ import {
   type WaterfallStep,
 } from './cli-viz/index.js';
 import { verifyIntegrity, wrapWithIntegrity, type RendererCallback } from './integrity.js';
-import { resolveCliColorMode } from './cli-viz/theme.js';
+import { resolveAppearance, resolveCliColorMode, type AppearanceMode } from './cli-viz/theme.js';
 import { renderDashboard, type DashboardOptions, type DashboardRow } from './cli-viz/dashboard.js';
 
 // Package version is read at build time and inlined by tsc. The version is
@@ -102,6 +102,7 @@ interface ParsedArgs {
   lineStyle?: LineChartLineStyle;
   integrity?: boolean;
   verify?: boolean;
+  appearance?: AppearanceMode;
 }
 
 interface AgentVizSpec {
@@ -320,6 +321,19 @@ export function parseAgentVizArgs(argv: string[]): ParsedArgs {
       continue;
     }
 
+    if (arg === '--appearance') {
+      const value = argv[index + 1];
+      if (!value) throw new Error('--appearance requires a value (light|dark|auto)');
+      args.appearance = parseAppearance(value);
+      index += 1;
+      continue;
+    }
+
+    if (arg.startsWith('--appearance=')) {
+      args.appearance = parseAppearance(arg.slice('--appearance='.length));
+      continue;
+    }
+
     if (arg === '--vline') {
       const value = argv[index + 1];
       if (!value) throw new Error('--vline requires a key=value spec');
@@ -480,6 +494,11 @@ function parseLineStyle(value: string): LineChartLineStyle {
   throw new Error(`--linestyle must be linear|step|markers-only|braille, got: ${value}`);
 }
 
+function parseAppearance(value: string): AppearanceMode {
+  if (value === 'light' || value === 'dark' || value === 'auto') return value;
+  throw new Error(`--appearance must be light|dark|auto, got: ${value}`);
+}
+
 async function main(): Promise<void> {
   try {
     const args = parseAgentVizArgs(process.argv.slice(2));
@@ -548,6 +567,17 @@ async function main(): Promise<void> {
       const existing = isRecord(spec.options) ? spec.options : {};
       if (existing.color === undefined) {
         spec.options = { ...existing, color: resolveCliColorMode() };
+      }
+    }
+    // Resolve appearance at the CLI boundary too: an explicit --appearance wins,
+    // otherwise default to 'auto' so a light terminal (COLORFGBG) is detected;
+    // when nothing is known this resolves to dark (no regression). Folding the
+    // concrete light/dark choice into the spec means it round-trips through the
+    // integrity block, just like color.
+    if (isRecord(spec)) {
+      const existing = isRecord(spec.options) ? spec.options : {};
+      if (existing.appearance === undefined) {
+        spec.options = { ...existing, appearance: resolveAppearance({ appearance: args.appearance ?? 'auto' }) };
       }
     }
     process.stdout.write(`${renderAgentVizSpec(spec, args.chart, args.width, lineOverrides, extra)}\n`);
@@ -671,13 +701,17 @@ Render terminal charts from JSON. Built for agents that need to show evidence
 inside a CLI transcript.
 
 Usage:
-  agentviz <chart> [file.json] [--width 100] [--integrity]
+  agentviz <chart> [file.json] [--width 100] [--appearance auto] [--integrity]
   cat chart.json | agentviz <chart>
   agentviz verify [chart.txt]
   cat chart.txt | agentviz verify
 
 Charts:
   bar, bignumber, filters, funnel, grouped, line, retention, scatter, sparkline, stacked, table, waterfall
+
+Appearance:
+  --appearance light|dark|auto   Palette tuned for the terminal background.
+                Default auto: detects a light terminal from COLORFGBG, else dark.
 
 Line chart flags (repeatable where noted):
   --vline at=<bucket>[,label=<text>][,position=above|below]

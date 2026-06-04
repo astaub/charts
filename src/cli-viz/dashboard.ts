@@ -19,7 +19,7 @@ import {
   renderStackedBarChart,
   renderWaterfallChart,
 } from './index.js';
-import { THEME, bold, dim, fg } from './theme.js';
+import { THEME, bold, fg, mutedText, type AppearanceMode } from './theme.js';
 import { makeRenderCtx, visualWidth } from './render-context.js';
 
 export interface DashboardPanel {
@@ -48,6 +48,8 @@ export interface DashboardOptions {
   color?: 'never' | 'auto' | 'always';
   isTTY?: boolean;
   env?: Record<string, string | undefined>;
+  /** Background appearance: 'light' | 'dark' | 'auto'. Default 'dark'. */
+  appearance?: AppearanceMode;
 }
 
 const DEFAULT_WIDTH = 100;
@@ -65,7 +67,7 @@ export function renderDashboard(rows: DashboardRow[], options: DashboardOptions 
   }
   if (options.subtitle) {
     const subtitle = sanitize(options.subtitle);
-    lines.push(ctx.color ? dim(subtitle) : subtitle);
+    lines.push(ctx.color ? mutedText(subtitle) : subtitle);
   }
   if (lines.length > 0) lines.push('');
 
@@ -111,7 +113,9 @@ function padEndVisual(value: string, width: number): string {
 }
 
 // Render one cell (a chart kind) at a fixed column width, inheriting the
-// dashboard's color decision so the whole board is colored consistently.
+// dashboard's color AND appearance decisions so the whole board is colored
+// consistently (without this, each sub-panel would resolve appearance afresh
+// and reset to the dark default — a light dashboard would render dark panels).
 function renderCell(panel: DashboardPanel, width: number, dash: DashboardOptions): string {
   const options: Record<string, unknown> = {
     ...(panel.options ?? {}),
@@ -119,6 +123,7 @@ function renderCell(panel: DashboardPanel, width: number, dash: DashboardOptions
     color: dash.color,
     isTTY: dash.isTTY,
     env: dash.env,
+    appearance: dash.appearance,
     ...(panel.title ? { title: panel.title } : {}),
   };
   const arr = <T,>(v: unknown): T[] => (Array.isArray(v) ? (v as T[]) : []);

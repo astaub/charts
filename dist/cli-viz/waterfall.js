@@ -1,4 +1,4 @@
-import { dim, fg, FULL_BLOCK, THEME } from './theme.js';
+import { bodyText, fg, FULL_BLOCK, mutedText, THEME } from './theme.js';
 import { panel } from './components.js';
 import { makeRenderCtx } from './render-context.js';
 const DEFAULT_WIDTH = 80;
@@ -34,7 +34,7 @@ export function renderWaterfallChart(steps, options = {}) {
     if (fixedWidth + 6 > inner)
         return renderWaterfallBlocks(segments, width);
     const barWidth = Math.max(6, inner - fixedWidth);
-    const dimText = (text) => (ctx.color ? dim(text) : text);
+    const dimText = (text) => (ctx.color ? mutedText(text) : text);
     const header = [
         padCell('Step', labelWidth, 'left'),
         padCell('Value', valueWidth, 'right'),
@@ -49,9 +49,11 @@ export function renderWaterfallChart(steps, options = {}) {
         const change = !ctx.color || segment.kind === 'start' || segment.kind === 'end'
             ? dimText(changeText)
             : fg(segment.delta < 0 ? THEME.negative : THEME.positive, changeText);
+        const label = ctx.color ? bodyText(padCell(segment.label, labelWidth, 'left')) : padCell(segment.label, labelWidth, 'left');
+        const valueCell = ctx.color ? bodyText(padCell(formatNumber(segment.value), valueWidth, 'right')) : padCell(formatNumber(segment.value), valueWidth, 'right');
         body.push([
-            padCell(segment.label, labelWidth, 'left'),
-            padCell(formatNumber(segment.value), valueWidth, 'right'),
+            label,
+            valueCell,
             change,
             dimText(padCell(formatNumber(segment.total), totalWidth, 'right')),
             waterfallBar(ctx, segment, segments, barWidth),
@@ -139,7 +141,7 @@ function waterfallBar(ctx, segment, segments, width) {
     // Mono distinguishes kinds by glyph; color uses a solid block tinted by kind.
     const monoFill = segment.kind === 'negative' ? '░' : segment.kind === 'positive' ? '#' : '█';
     const fill = ctx.color ? fg(kindColor(segment.kind), FULL_BLOCK) : monoFill;
-    const zeroMark = ctx.color ? dim('|') : '|';
+    const zeroMark = ctx.color ? mutedText('|') : '|';
     const cells = Array.from({ length: width }, () => ' ');
     if (max !== min) {
         const start = segment.kind === 'start' || segment.kind === 'end' ? Math.min(0, segment.total) : Math.min(segment.base, segment.total);

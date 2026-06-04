@@ -6,7 +6,7 @@
 // Like the rest of agentviz it is text-first: no color is emitted unless
 // explicitly enabled, so the output survives an agent transcript, copy/paste,
 // and the web renderer.
-import { THEME, bold, dim, fg } from './theme.js';
+import { THEME, bold, fg, mutedText } from './theme.js';
 import { deltaBadge, inlineSparkline, panel } from './components.js';
 import { makeRenderCtx } from './render-context.js';
 const ESC = String.fromCharCode(27);
@@ -43,7 +43,7 @@ export function renderBigNumber(value, options = {}) {
     }
     if (hasPrevious) {
         const prevText = `vs ${formatValue(options.previous, options)}`;
-        captionParts.push(ctx.color ? dim(prevText) : prevText);
+        captionParts.push(ctx.color ? mutedText(prevText) : prevText);
     }
     if (captionParts.length > 0)
         body.push(captionParts.join('   '));

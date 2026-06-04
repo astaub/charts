@@ -14,7 +14,7 @@ export { renderWaterfallChart, } from './waterfall.js';
 export { renderBigNumber, } from './bignumber.js';
 import { BrailleCanvas } from './braille.js';
 export { BrailleCanvas } from './braille.js';
-import { THEME, categorical, dim, fg, fgBg, heat, ramp, rampShade, resolveColor } from './theme.js';
+import { THEME, applyAppearance, bodyText, categorical, dim, fg, fgBg, heat, mutedText, ramp, rampShade, resolveColor } from './theme.js';
 import { meterTable, padEnd, padStart, panel } from './components.js';
 export * from './theme.js';
 export { colorLabel, deltaBadge, inlineSparkline, legend, meter, meterTable, panel, swatch, } from './components.js';
@@ -32,6 +32,9 @@ export function renderSparkline(values, options = {}) {
     const sampled = sampleSeries(finiteValues, available);
     const min = Math.min(...finiteValues);
     const max = Math.max(...finiteValues);
+    // Activate the light/dark palette: the sparkline tints glyphs along the ramp
+    // and uses THEME.accent directly without building a shared render context.
+    applyAppearance({ appearance: options.appearance, env: options.env });
     // Mono is byte-identical to the historical output (tests pin it). In color
     // mode each glyph is tinted along the canonical ramp by its height, and the
     // start→end suffix is dimmed, so the sparkline reads as part of the system.
@@ -45,7 +48,7 @@ export function renderSparkline(values, options = {}) {
         return fg(ramp(1 - t), sparkChar(value, min, max));
     })
         .join('');
-    return `${fg(THEME.accent, prefix)}${sparkline}${dim(suffix)}`;
+    return `${fg(THEME.accent, prefix)}${sparkline}${mutedText(suffix)}`;
 }
 export function renderBarChart(rows, options = {}) {
     const width = clampWidth(options.width);
@@ -195,7 +198,7 @@ export function renderLineChart(series, options = {}) {
     const plotWidth = Math.min(contentWidth - labelWidth - 3, Math.max(12, buckets.length * 16));
     const xPositions = lineChartXPositions(buckets.length, plotWidth);
     const seriesColors = cleanSeries.map((_, index) => categorical(index));
-    const dimText = (text) => (ctx.color ? dim(text) : text);
+    const dimText = (text) => (ctx.color ? mutedText(text) : text);
     const axisRow = (label, plot) => `${dimText(padCell(label, labelWidth, 'right'))} ${dimText('|')} ${plot}`;
     // Default stays linear so vlines/shades/goal draw inline (braille can't host
     // them legibly). `lineStyle: 'braille'` — or `area: true` — opts into the
@@ -342,7 +345,7 @@ export function renderLineChart(series, options = {}) {
                 else if (ch === '╌')
                     plot += dim(fg(THEME.warn, ch));
                 else
-                    plot += dim(ch); // shade / vline background
+                    plot += mutedText(ch); // shade / vline background
             }
             bodyLines.push(axisRow(axisLabels[row] ?? '0', plot.replace(/\s+$/u, '')));
         }
@@ -580,7 +583,7 @@ export function renderRetentionHeatmap(cohorts, options = {}) {
     // (mono). Missing periods render as a dim centered dot.
     const heatCell = (rate) => {
         if (rate === undefined)
-            return ctx.color ? dim(center('·', cellWidth)) : center('·', cellWidth);
+            return ctx.color ? mutedText(center('·', cellWidth)) : center('·', cellWidth);
         const pct = formatPercent(rate);
         if (!ctx.color) {
             const shade = HEAT_BUCKETS[Math.min(HEAT_BUCKETS.length - 1, Math.floor(rate * HEAT_BUCKETS.length))] ?? '░';
@@ -593,10 +596,12 @@ export function renderRetentionHeatmap(cohorts, options = {}) {
         padStart(ctx, 'Size', sizeWidth) +
         gap +
         periodLabels.map((periodLabel) => center(periodLabel, cellWidth)).join(gap);
-    const body = [ctx.color ? dim(header) : header, ''];
+    const body = [ctx.color ? mutedText(header) : header, ''];
     for (const cohort of cleanCohorts) {
         const cells = periodLabels.map((periodLabel) => heatCell(rateOf(cohort, periodLabel))).join(gap);
-        body.push(`${padEnd(ctx, cohort.label, labelWidth)}${gap}${padStart(ctx, formatNumber(cohort.size), sizeWidth)}${gap}${cells}`);
+        const rowLabel = ctx.color ? bodyText(padEnd(ctx, cohort.label, labelWidth)) : padEnd(ctx, cohort.label, labelWidth);
+        const rowSize = ctx.color ? bodyText(padStart(ctx, formatNumber(cohort.size), sizeWidth)) : padStart(ctx, formatNumber(cohort.size), sizeWidth);
+        body.push(`${rowLabel}${gap}${rowSize}${gap}${cells}`);
     }
     return panel(ctx, {
         body,
@@ -625,6 +630,9 @@ export function resolveColorEnabled(options = {}) {
 // context the shared components draw with. Every paneled chart builds one of
 // these so chrome, color, and width math stay consistent across kinds.
 function makeRenderCtx(options) {
+    // Activate the light/dark palette here (the shared boundary) so every kind
+    // built on this context adapts with no per-kind change.
+    applyAppearance({ appearance: options.appearance, env: options.env });
     return {
         color: resolveColor({ color: options.color, isTTY: options.isTTY, env: options.env }),
         visualWidth,
@@ -1024,11 +1032,11 @@ function lineChartLegendLines(ctx, series, colors, width) {
         return wrapLine(`Legend: ${legend}`, width);
     }
     const entries = series.map((entry, index) => fg(colors[index] ?? THEME.accent, `${lineChartMarker(index)} ${entry.label}`));
-    const oneLine = `${dim('Legend:')} ${entries.join('  ')}`;
+    const oneLine = `${mutedText('Legend:')} ${entries.join('  ')}`;
     if (ctx.visualWidth(oneLine) <= width)
         return [oneLine];
     // Too wide: one series per line, still keyed by color.
-    return [dim('Legend:'), ...entries];
+    return [mutedText('Legend:'), ...entries];
 }
 function normalizeFilter(filter) {
     return {

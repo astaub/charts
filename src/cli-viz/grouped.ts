@@ -1,4 +1,4 @@
-import { categorical, dim, fg, FULL_BLOCK, THEME, type RGB } from './theme.js';
+import { categorical, fg, FULL_BLOCK, mutedText, THEME, type RGB } from './theme.js';
 import { panel } from './components.js';
 import { makeRenderCtx } from './render-context.js';
 import type { RenderCtx } from './components.js';
@@ -118,9 +118,9 @@ export function renderGroupedBarChart(buckets: GroupedBarBucketDatum[], options:
 function groupedLegendLines(ctx: RenderCtx, series: SeriesMeta[], width: number): string[] {
   if (ctx.color) {
     const entries = series.map((meta) => `${fg(meta.color, '●')} ${fg(meta.color, meta.label)}`);
-    const oneLine = `${dim('Legend:')} ${entries.join('   ')}`;
+    const oneLine = `${mutedText('Legend:')} ${entries.join('   ')}`;
     if (ctx.visualWidth(oneLine) <= width) return [oneLine];
-    return [dim('Legend:'), ...entries];
+    return [mutedText('Legend:'), ...entries];
   }
   return wrapLine(`Legend: ${series.map((meta) => `${meta.symbol} ${meta.label}`).join('   ')}`, width);
 }
@@ -240,7 +240,7 @@ function renderGroupedPlot(
     });
   });
 
-  const dimText = (text: string) => (ctx.color ? dim(text) : text);
+  const dimText = (text: string) => (ctx.color ? mutedText(text) : text);
   const lines: string[] = [];
 
   // Marker labels above the plot.

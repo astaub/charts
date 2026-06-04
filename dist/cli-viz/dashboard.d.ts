@@ -1,3 +1,4 @@
+import { type AppearanceMode } from './theme.js';
 export interface DashboardPanel {
     chart: string;
     title?: string;
@@ -21,5 +22,7 @@ export interface DashboardOptions {
     color?: 'never' | 'auto' | 'always';
     isTTY?: boolean;
     env?: Record<string, string | undefined>;
+    /** Background appearance: 'light' | 'dark' | 'auto'. Default 'dark'. */
+    appearance?: AppearanceMode;
 }
 export declare function renderDashboard(rows: DashboardRow[], options?: DashboardOptions): string;

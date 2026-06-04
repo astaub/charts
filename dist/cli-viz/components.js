@@ -7,7 +7,7 @@
 // These build on the pure primitives in ./theme.ts and the width-aware string
 // helpers passed in from index.ts (so there is exactly one display-width
 // implementation in the codebase).
-import { BOX, FULL_BLOCK, THEME, bold, dim, fg, barGlyphs, ramp, } from './theme.js';
+import { BOX, FULL_BLOCK, THEME, bodyText, bold, fg, mutedText, barGlyphs, ramp, } from './theme.js';
 const SPARK_GLYPHS = ['▁', '▂', '▃', '▄', '▅', '▆', '▇', '█'];
 // ---------------------------------------------------------------------------
 // Low-level: pad a (possibly colored) cell to a display width.
@@ -43,7 +43,7 @@ export function swatch(ctx, color) {
  */
 export function deltaBadge(ctx, change, opts = {}) {
     if (!Number.isFinite(change))
-        return ctx.color ? dim('n/a') : 'n/a';
+        return ctx.color ? mutedText('n/a') : 'n/a';
     const arrow = change > 0 ? '▲' : change < 0 ? '▼' : '→';
     const magnitude = opts.as === 'number'
         ? new Intl.NumberFormat('en-US', { maximumFractionDigits: 1 }).format(Math.abs(change))
@@ -55,7 +55,7 @@ export function deltaBadge(ctx, change, opts = {}) {
     if (!ctx.color)
         return text;
     if (change === 0)
-        return dim(text);
+        return mutedText(text);
     const good = (opts.goodDirection ?? 'up') === 'up' ? change > 0 : change < 0;
     return fg(good ? THEME.positive : THEME.negative, text);
 }
@@ -140,11 +140,15 @@ export function meterTable(ctx, spec) {
     const rightCells = (cells, styled) => cells
         .map((cell, i) => {
         const padded = padStart(ctx, cell, colWidths[i] ?? 0);
-        return styled && ctx.color && dimCols[i] ? dim(padded) : padded;
+        if (!styled || !ctx.color)
+            return padded;
+        // Dim columns → muted; primary columns → explicit body text (so the
+        // value reads on a light background instead of the pale default fg).
+        return dimCols[i] ? mutedText(padded) : bodyText(padded);
     })
         .join(gap);
     const headerLine = ' '.repeat(spec.labelWidth) + gap + ' '.repeat(meterWidth) + spacer + rightCells(spec.headers, false);
-    const lines = [ctx.color ? dim(headerLine) : headerLine, ''];
+    const lines = [ctx.color ? mutedText(headerLine) : headerLine, ''];
     // Optional goal/threshold reference line: a dashed vertical drawn across every
     // meter at `fraction`, with a label placed above it (in the warn accent).
     let referenceAt;
@@ -196,7 +200,7 @@ export function panel(ctx, opts) {
     const accent = opts.accent ?? THEME.accent;
     const inner = Math.max(1, opts.width - 2 - PAD * 2);
     const horiz = (text) => (ctx.color ? fg(accent, text) : text);
-    const chrome = (text) => (ctx.color ? dim(text) : text);
+    const chrome = (text) => (ctx.color ? mutedText(text) : text);
     const lines = [];
     // Top border with embedded title.
     if (opts.title) {
@@ -218,7 +222,7 @@ export function panel(ctx, opts) {
     // Subtitle (dim) + blank spacer.
     if (opts.subtitle) {
         const sub = ctx.truncate(opts.subtitle, inner);
-        lines.push(bodyLine(ctx.color ? dim(sub) : sub));
+        lines.push(bodyLine(ctx.color ? mutedText(sub) : sub));
         lines.push(bodyLine(''));
     }
     for (const line of opts.body)
@@ -226,7 +230,7 @@ export function panel(ctx, opts) {
     if (opts.footer) {
         lines.push(bodyLine(''));
         const foot = ctx.truncate(opts.footer, inner);
-        lines.push(bodyLine(ctx.color ? dim(foot) : foot));
+        lines.push(bodyLine(ctx.color ? mutedText(foot) : foot));
     }
     // Bottom border.
     lines.push(horiz(BOX.bottomLeft + BOX.horizontal.repeat(opts.width - 2) + BOX.bottomRight));

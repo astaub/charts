@@ -1,4 +1,4 @@
-import { categorical, dim, fg, FULL_BLOCK, THEME } from './theme.js';
+import { categorical, fg, FULL_BLOCK, mutedText, THEME } from './theme.js';
 import { panel } from './components.js';
 import { makeRenderCtx } from './render-context.js';
 const DEFAULT_WIDTH = 80;
@@ -49,10 +49,10 @@ export function renderGroupedBarChart(buckets, options = {}) {
 function groupedLegendLines(ctx, series, width) {
     if (ctx.color) {
         const entries = series.map((meta) => `${fg(meta.color, '●')} ${fg(meta.color, meta.label)}`);
-        const oneLine = `${dim('Legend:')} ${entries.join('   ')}`;
+        const oneLine = `${mutedText('Legend:')} ${entries.join('   ')}`;
         if (ctx.visualWidth(oneLine) <= width)
             return [oneLine];
-        return [dim('Legend:'), ...entries];
+        return [mutedText('Legend:'), ...entries];
     }
     return wrapLine(`Legend: ${series.map((meta) => `${meta.symbol} ${meta.label}`).join('   ')}`, width);
 }
@@ -148,7 +148,7 @@ function renderGroupedPlot(ctx, buckets, series, options, layout, chartHeight, m
             }
         });
     });
-    const dimText = (text) => (ctx.color ? dim(text) : text);
+    const dimText = (text) => (ctx.color ? mutedText(text) : text);
     const lines = [];
     // Marker labels above the plot.
     const aboveLabels = renderMarkerLabelLine(markers, labelWidth, plotWidth);

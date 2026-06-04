@@ -74,6 +74,28 @@ Color is decided once, at the edge: a terminal gets truecolor; a pipe or a
 captured transcript gets the same layout in clean monochrome Unicode. Same
 geometry either way.
 
+**Light or dark background.** There are two tuned palettes from the same blue
+family — one for dark terminals, one for light. `--appearance light|dark|auto`
+(or the `appearance` option) picks; `auto` detects a light terminal from the
+`COLORFGBG` env var and otherwise defaults to dark (no change to existing
+output). Switching only swaps colors — never geometry — so every kind adapts
+with no per-kind change. On light it: colors primary text deep navy and
+secondary text a dark slate (a light terminal's default fg is dark, but ANSI
+can't set the *default*, so the text carries its own color); deepens the blue
+ramp so it stays legible on white; raises the heatmap's lowest cell to a
+faint-but-visible tint (a low cohort reads as a tinted cell, an absent one as a
+bare dot); and deepens the green/red/amber accents to pop on white.
+
+```sh
+agentviz retention fixtures/retention-weekly.json --appearance light --width 78
+```
+
+Both palettes are kept honest by QA that covers both backgrounds:
+`scripts/qa-gallery.sh` regenerates `docs/screenshots/<kind>.{dark,light}.png`
+for every kind (read the pairs side by side), and the equal-visible-width
+regression test asserts the single-column right border under **both**
+appearances — so neither theme can regress unseen.
+
 **Line & sparkline** are on the same system: the wide line chart renders in a
 titled panel with per-series color (each series keyed to the palette, matching
 its legend swatch). The default style draws an inline grid (so goal lines, vline

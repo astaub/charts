@@ -8,7 +8,7 @@
 // Depends on the kind renderers (one-way; index.ts does not import this), so
 // there is no cycle.
 import { renderBarChart, renderBigNumber, renderFunnelBars, renderGroupedBarChart, renderLineChart, renderRetentionHeatmap, renderScatterPlot, renderStackedBarChart, renderWaterfallChart, } from './index.js';
-import { THEME, bold, dim, fg } from './theme.js';
+import { THEME, bold, fg, mutedText } from './theme.js';
 import { makeRenderCtx, visualWidth } from './render-context.js';
 const DEFAULT_WIDTH = 100;
 const GAP = 2;
@@ -24,7 +24,7 @@ export function renderDashboard(rows, options = {}) {
     }
     if (options.subtitle) {
         const subtitle = sanitize(options.subtitle);
-        lines.push(ctx.color ? dim(subtitle) : subtitle);
+        lines.push(ctx.color ? mutedText(subtitle) : subtitle);
     }
     if (lines.length > 0)
         lines.push('');
@@ -64,7 +64,9 @@ function padEndVisual(value, width) {
     return w >= width ? value : value + ' '.repeat(width - w);
 }
 // Render one cell (a chart kind) at a fixed column width, inheriting the
-// dashboard's color decision so the whole board is colored consistently.
+// dashboard's color AND appearance decisions so the whole board is colored
+// consistently (without this, each sub-panel would resolve appearance afresh
+// and reset to the dark default — a light dashboard would render dark panels).
 function renderCell(panel, width, dash) {
     const options = {
         ...(panel.options ?? {}),
@@ -72,6 +74,7 @@ function renderCell(panel, width, dash) {
         color: dash.color,
         isTTY: dash.isTTY,
         env: dash.env,
+        appearance: dash.appearance,
         ...(panel.title ? { title: panel.title } : {}),
     };
     const arr = (v) => (Array.isArray(v) ? v : []);

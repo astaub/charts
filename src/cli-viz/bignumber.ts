@@ -7,7 +7,7 @@
 // explicitly enabled, so the output survives an agent transcript, copy/paste,
 // and the web renderer.
 
-import { THEME, bold, dim, fg } from './theme.js';
+import { THEME, bold, fg, mutedText } from './theme.js';
 import { deltaBadge, inlineSparkline, panel } from './components.js';
 import { makeRenderCtx } from './render-context.js';
 
@@ -81,7 +81,7 @@ export function renderBigNumber(value: number, options: BigNumberOptions = {}): 
   }
   if (hasPrevious) {
     const prevText = `vs ${formatValue(options.previous as number, options)}`;
-    captionParts.push(ctx.color ? dim(prevText) : prevText);
+    captionParts.push(ctx.color ? mutedText(prevText) : prevText);
   }
   if (captionParts.length > 0) body.push(captionParts.join('   '));
 

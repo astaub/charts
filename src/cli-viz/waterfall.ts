@@ -1,4 +1,4 @@
-import { dim, fg, FULL_BLOCK, THEME, type RGB } from './theme.js';
+import { bodyText, fg, FULL_BLOCK, mutedText, THEME, type RGB } from './theme.js';
 import { panel } from './components.js';
 import { makeRenderCtx } from './render-context.js';
 import type { RenderCtx } from './components.js';
@@ -68,7 +68,7 @@ export function renderWaterfallChart(steps: WaterfallStep[], options: WaterfallC
   if (fixedWidth + 6 > inner) return renderWaterfallBlocks(segments, width);
 
   const barWidth = Math.max(6, inner - fixedWidth);
-  const dimText = (text: string) => (ctx.color ? dim(text) : text);
+  const dimText = (text: string) => (ctx.color ? mutedText(text) : text);
   const header = [
     padCell('Step', labelWidth, 'left'),
     padCell('Value', valueWidth, 'right'),
@@ -84,10 +84,12 @@ export function renderWaterfallChart(steps: WaterfallStep[], options: WaterfallC
     const change = !ctx.color || segment.kind === 'start' || segment.kind === 'end'
       ? dimText(changeText)
       : fg(segment.delta < 0 ? THEME.negative : THEME.positive, changeText);
+    const label = ctx.color ? bodyText(padCell(segment.label, labelWidth, 'left')) : padCell(segment.label, labelWidth, 'left');
+    const valueCell = ctx.color ? bodyText(padCell(formatNumber(segment.value), valueWidth, 'right')) : padCell(formatNumber(segment.value), valueWidth, 'right');
     body.push(
       [
-        padCell(segment.label, labelWidth, 'left'),
-        padCell(formatNumber(segment.value), valueWidth, 'right'),
+        label,
+        valueCell,
         change,
         dimText(padCell(formatNumber(segment.total), totalWidth, 'right')),
         waterfallBar(ctx, segment, segments, barWidth),
@@ -181,7 +183,7 @@ function waterfallBar(ctx: RenderCtx, segment: WaterfallSegment, segments: Water
   // Mono distinguishes kinds by glyph; color uses a solid block tinted by kind.
   const monoFill = segment.kind === 'negative' ? '░' : segment.kind === 'positive' ? '#' : '█';
   const fill = ctx.color ? fg(kindColor(segment.kind), FULL_BLOCK) : monoFill;
-  const zeroMark = ctx.color ? dim('|') : '|';
+  const zeroMark = ctx.color ? mutedText('|') : '|';
   const cells = Array.from({ length: width }, () => ' ');
 
   if (max !== min) {

@@ -45,7 +45,7 @@ export {
 } from './bignumber.js';
 import { BrailleCanvas } from './braille.js';
 export { BrailleCanvas } from './braille.js';
-import { THEME, categorical, dim, fg, fgBg, heat, ramp, rampShade, resolveColor, type ColorMode, type RGB } from './theme.js';
+import { THEME, applyAppearance, bodyText, categorical, dim, fg, fgBg, heat, mutedText, ramp, rampShade, resolveColor, type AppearanceMode, type ColorMode, type RGB } from './theme.js';
 import { meterTable, padEnd, padStart, panel, type MeterRow, type RenderCtx } from './components.js';
 export * from './theme.js';
 export {
@@ -75,6 +75,8 @@ export interface CliVizOptions {
   color?: CliVizColorMode;
   isTTY?: boolean;
   env?: Record<string, string | undefined>;
+  /** Background appearance the chart is tuned for: 'light' | 'dark' | 'auto'. Default 'dark'. */
+  appearance?: AppearanceMode;
   barStyle?: 'ascii' | 'blocks';
   /** Panel title drawn into the top border (paneled charts only). */
   title?: string;
@@ -234,6 +236,9 @@ export function renderSparkline(values: number[], options: SparklineOptions = {}
   const sampled = sampleSeries(finiteValues, available);
   const min = Math.min(...finiteValues);
   const max = Math.max(...finiteValues);
+  // Activate the light/dark palette: the sparkline tints glyphs along the ramp
+  // and uses THEME.accent directly without building a shared render context.
+  applyAppearance({ appearance: options.appearance, env: options.env });
 
   // Mono is byte-identical to the historical output (tests pin it). In color
   // mode each glyph is tinted along the canonical ramp by its height, and the
@@ -248,7 +253,7 @@ export function renderSparkline(values: number[], options: SparklineOptions = {}
       return fg(ramp(1 - t), sparkChar(value, min, max));
     })
     .join('');
-  return `${fg(THEME.accent, prefix)}${sparkline}${dim(suffix)}`;
+  return `${fg(THEME.accent, prefix)}${sparkline}${mutedText(suffix)}`;
 }
 
 export function renderBarChart(rows: BarChartDatum[], options: BarChartOptions = {}): string {
@@ -415,7 +420,7 @@ export function renderLineChart(series: LineChartSeries[], options: LineChartOpt
   const plotWidth = Math.min(contentWidth - labelWidth - 3, Math.max(12, buckets.length * 16));
   const xPositions = lineChartXPositions(buckets.length, plotWidth);
   const seriesColors = cleanSeries.map((_, index) => categorical(index));
-  const dimText = (text: string) => (ctx.color ? dim(text) : text);
+  const dimText = (text: string) => (ctx.color ? mutedText(text) : text);
   const axisRow = (label: string, plot: string) =>
     `${dimText(padCell(label, labelWidth, 'right'))} ${dimText('|')} ${plot}`;
 
@@ -557,7 +562,7 @@ export function renderLineChart(series: LineChartSeries[], options: LineChartOpt
         const seriesOwner = owners[x] ?? -1;
         if (seriesOwner >= 0) plot += fg(seriesColors[seriesOwner] ?? THEME.accent, ch);
         else if (ch === '╌') plot += dim(fg(THEME.warn, ch));
-        else plot += dim(ch); // shade / vline background
+        else plot += mutedText(ch); // shade / vline background
       }
       bodyLines.push(axisRow(axisLabels[row] ?? '0', plot.replace(/\s+$/u, '')));
     }
@@ -823,7 +828,7 @@ export function renderRetentionHeatmap(cohorts: RetentionCohortDatum[], options:
   // A single cell: solid heat-colored block (color) or a shade glyph + percent
   // (mono). Missing periods render as a dim centered dot.
   const heatCell = (rate: number | undefined): string => {
-    if (rate === undefined) return ctx.color ? dim(center('·', cellWidth)) : center('·', cellWidth);
+    if (rate === undefined) return ctx.color ? mutedText(center('·', cellWidth)) : center('·', cellWidth);
     const pct = formatPercent(rate);
     if (!ctx.color) {
       const shade = HEAT_BUCKETS[Math.min(HEAT_BUCKETS.length - 1, Math.floor(rate * HEAT_BUCKETS.length))] ?? '░';
@@ -838,11 +843,13 @@ export function renderRetentionHeatmap(cohorts: RetentionCohortDatum[], options:
     padStart(ctx, 'Size', sizeWidth) +
     gap +
     periodLabels.map((periodLabel) => center(periodLabel, cellWidth)).join(gap);
-  const body: string[] = [ctx.color ? dim(header) : header, ''];
+  const body: string[] = [ctx.color ? mutedText(header) : header, ''];
 
   for (const cohort of cleanCohorts) {
     const cells = periodLabels.map((periodLabel) => heatCell(rateOf(cohort, periodLabel))).join(gap);
-    body.push(`${padEnd(ctx, cohort.label, labelWidth)}${gap}${padStart(ctx, formatNumber(cohort.size), sizeWidth)}${gap}${cells}`);
+    const rowLabel = ctx.color ? bodyText(padEnd(ctx, cohort.label, labelWidth)) : padEnd(ctx, cohort.label, labelWidth);
+    const rowSize = ctx.color ? bodyText(padStart(ctx, formatNumber(cohort.size), sizeWidth)) : padStart(ctx, formatNumber(cohort.size), sizeWidth);
+    body.push(`${rowLabel}${gap}${rowSize}${gap}${cells}`);
   }
 
   return panel(ctx, {
@@ -871,6 +878,9 @@ export function resolveColorEnabled(options: CliVizOptions = {}): boolean {
 // context the shared components draw with. Every paneled chart builds one of
 // these so chrome, color, and width math stay consistent across kinds.
 function makeRenderCtx(options: CliVizOptions): RenderCtx {
+  // Activate the light/dark palette here (the shared boundary) so every kind
+  // built on this context adapts with no per-kind change.
+  applyAppearance({ appearance: options.appearance, env: options.env });
   return {
     color: resolveColor({ color: options.color as ColorMode | undefined, isTTY: options.isTTY, env: options.env }),
     visualWidth,
@@ -1326,10 +1336,10 @@ function lineChartLegendLines(
     return wrapLine(`Legend: ${legend}`, width);
   }
   const entries = series.map((entry, index) => fg(colors[index] ?? THEME.accent, `${lineChartMarker(index)} ${entry.label}`));
-  const oneLine = `${dim('Legend:')} ${entries.join('  ')}`;
+  const oneLine = `${mutedText('Legend:')} ${entries.join('  ')}`;
   if (ctx.visualWidth(oneLine) <= width) return [oneLine];
   // Too wide: one series per line, still keyed by color.
-  return [dim('Legend:'), ...entries];
+  return [mutedText('Legend:'), ...entries];
 }
 
 function normalizeFilter(filter: FilterDatum): Required<Omit<FilterDatum, 'value'>> & { value?: FilterValue } {

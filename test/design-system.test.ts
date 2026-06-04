@@ -21,6 +21,7 @@ import {
   resolveColor,
   stripAnsi,
 } from '../src/cli-viz/index';
+import { THEME, getAppearance, heat, resolveAppearance, setAppearance } from '../src/cli-viz/theme';
 import { renderDashboard } from '../src/cli-viz/dashboard';
 
 const ESC = '\u001B';
@@ -123,42 +124,115 @@ describe('design system — panel right-border alignment (no ragged edge)', () =
     { label: 'C2', size: 80, periods: [{ label: 'W0', rate: 1 }, { label: 'W1', rate: 0.5 }] },
   ];
   const width = 72;
-  const cases: Array<[string, string]> = [
-    ['bar', renderBarChart([{ label: 'A', value: 9 }, { label: 'B', value: 3 }], { width, title: 't', color: 'always' })],
-    ['funnel', renderFunnelBars([{ label: 'Visited', count: 90 }, { label: 'Paid', count: 12 }], { width, title: 't', color: 'always' })],
-    ['line-linear', renderLineChart(series, { width, height: 8, title: 't', color: 'always' })],
-    ['line-braille', renderLineChart(series, { width, height: 8, lineStyle: 'braille', title: 't', color: 'always' })],
-    ['line-area', renderLineChart([series[0]!], { width, height: 8, area: true, title: 't', color: 'always' })],
-    ['line-mono', renderLineChart(series, { width, height: 8, lineStyle: 'braille', color: 'never' })],
-    ['retention', renderRetentionHeatmap(cohorts, { width, title: 't', color: 'always' })],
+  // Built per appearance: the geometry must hold identically on the light and
+  // dark palettes (appearance only swaps colors, never column math).
+  const casesFor = (appearance: 'light' | 'dark'): Array<[string, string]> => [
+    ['bar', renderBarChart([{ label: 'A', value: 9 }, { label: 'B', value: 3 }], { width, title: 't', color: 'always', appearance })],
+    ['funnel', renderFunnelBars([{ label: 'Visited', count: 90 }, { label: 'Paid', count: 12 }], { width, title: 't', color: 'always', appearance })],
+    ['line-linear', renderLineChart(series, { width, height: 8, title: 't', color: 'always', appearance })],
+    ['line-braille', renderLineChart(series, { width, height: 8, lineStyle: 'braille', title: 't', color: 'always', appearance })],
+    ['line-area', renderLineChart([series[0]!], { width, height: 8, area: true, title: 't', color: 'always', appearance })],
+    ['line-mono', renderLineChart(series, { width, height: 8, lineStyle: 'braille', color: 'never', appearance })],
+    ['retention', renderRetentionHeatmap(cohorts, { width, title: 't', color: 'always', appearance })],
     ['stacked', renderStackedBarChart([
       { label: 'W1', segments: [{ key: 'a', label: 'A', value: 60 }, { key: 'b', label: 'B', value: 40 }] },
       { label: 'W2', segments: [{ key: 'a', label: 'A', value: 30 }, { key: 'b', label: 'B', value: 70 }] },
-    ], { width, title: 't', color: 'always' })],
+    ], { width, title: 't', color: 'always', appearance })],
     ['grouped', renderGroupedBarChart([
       { label: 'W1', bars: [{ key: 'a', label: 'A', value: 40 }, { key: 'b', label: 'B', value: 12 }] },
       { label: 'W2', bars: [{ key: 'a', label: 'A', value: 52 }, { key: 'b', label: 'B', value: 18 }] },
-    ], { width, title: 't', color: 'always' })],
+    ], { width, title: 't', color: 'always', appearance })],
     ['waterfall', renderWaterfallChart([
       { label: 'Start', value: 100, kind: 'start' },
       { label: 'Gain', value: 30, kind: 'positive' },
       { label: 'Loss', value: -20, kind: 'negative' },
       { label: 'End', value: 110, kind: 'end' },
-    ], { width, title: 't', color: 'always' })],
-    ['bignumber', renderBigNumber(1234, { width, label: 'Signups', previous: 1102, sparkline: [800, 1102, 1050, 1234], color: 'always' })],
-    ['bar-goal', renderBarChart([{ label: 'A', value: 9 }, { label: 'B', value: 3 }], { width, title: 't', goal: 6, goalLabel: 'target', color: 'always' })],
+    ], { width, title: 't', color: 'always', appearance })],
+    ['bignumber', renderBigNumber(1234, { width, label: 'Signups', previous: 1102, sparkline: [800, 1102, 1050, 1234], color: 'always', appearance })],
+    ['bar-goal', renderBarChart([{ label: 'A', value: 9 }, { label: 'B', value: 3 }], { width, title: 't', goal: 6, goalLabel: 'target', color: 'always', appearance })],
     ['scatter', renderScatterPlot([
       { label: 'A', x: 0.6, y: 0.2 }, { label: 'B', x: 0.3, y: -0.1 }, { label: 'C', x: 0.5, y: 0.05 },
-    ], { width, title: 't', xThreshold: 0.4, yThreshold: 0.1, color: 'always' })],
+    ], { width, title: 't', xThreshold: 0.4, yThreshold: 0.1, color: 'always', appearance })],
   ];
 
+  const rightBorder = new Set(['│', '╮', '╯']);
+  for (const appearance of ['dark', 'light'] as const) {
+    for (const [name, out] of casesFor(appearance)) {
+      it(`${name} (${appearance}): every row is exactly the panel width, single-column right border`, () => {
+        const lines = out.split('\n');
+        // Sanity: it really is a panel (rounded corners top and bottom).
+        expect(stripAnsi(lines[0] ?? '').startsWith('╭')).toBe(true);
+        expect(stripAnsi(lines.at(-1) ?? '').startsWith('╰')).toBe(true);
+        for (const line of lines) {
+          // Equal visible width → the right border lands in one clean column.
+          expect(visW(line)).toBe(width);
+          // …and that last column really is a border glyph (no ragged stray |).
+          const stripped = [...stripAnsi(line)];
+          expect(rightBorder.has(stripped.at(-1) ?? '')).toBe(true);
+        }
+      });
+    }
+  }
+
+  // The light ragged-border bug slipped through because QA only covered dark.
+  // Lock it down: appearance only swaps COLORS, never geometry — so the
+  // ANSI-stripped output of each kind must be byte-identical across themes.
+  // If a future palette change perturbs a width, this fails on BOTH themes.
+  const darkCases = casesFor('dark');
+  const lightCases = casesFor('light');
+  for (let i = 0; i < darkCases.length; i += 1) {
+    const [name, darkOut] = darkCases[i]!;
+    const [, lightOut] = lightCases[i]!;
+    it(`${name}: light and dark are geometrically identical (colors differ, layout does not)`, () => {
+      expect(stripAnsi(lightOut)).toBe(stripAnsi(darkOut));
+      // Colored kinds must actually recolor per theme; the mono case (no ANSI)
+      // is legitimately identical across appearances.
+      if (darkOut.includes('')) expect(lightOut).not.toBe(darkOut);
+    });
+  }
+});
+
+// Font-independent guarantee on the EXACT fixtures + invocation a reviewer used
+// (default CLI width, no --width, light theme). A panel renders correctly iff
+// every body row is padded to one identical ANSI-visible width before the right
+// border is appended — so a single distinct visible width across all rows proves
+// the strings are right. (The ragged right border some renderers show is a
+// non-uniform-glyph-advance property of the FONT, not the string: the left
+// border sits at column 0 on every row regardless of font; the right is at the
+// end after N glyphs whose advances drift in a proportional font. Render these
+// .ans through a monospace font — e.g. `freeze --font.family Menlo` — and the
+// border is one clean column.)
+describe('design system — light panels are equal-width on the exact reported fixtures', () => {
+  const visW = (line: string) => [...stripAnsi(line)].length;
+  const rightBorder = new Set(['│', '╮', '╯']);
+  const DEFAULT_WIDTH = 80;
+  const cases: Array<[string, string]> = [
+    ['bar-revenue-by-plan', renderBarChart(
+      [
+        { label: 'Enterprise', value: 184200 },
+        { label: 'Business', value: 96400 },
+        { label: 'Pro', value: 51800 },
+        { label: 'Starter', value: 18300 },
+        { label: 'Free trial', value: 0 },
+      ],
+      { title: 'MRR by plan', appearance: 'light', color: 'always' },
+    )],
+    ['retention-weekly', renderRetentionHeatmap(
+      [
+        { label: 'Jan W1', size: 1240, periods: [{ label: 'W0', rate: 1 }, { label: 'W1', rate: 0.62 }, { label: 'W2', rate: 0.48 }, { label: 'W3', rate: 0.41 }, { label: 'W4', rate: 0.37 }] },
+        { label: 'Jan W2', size: 1380, periods: [{ label: 'W0', rate: 1 }, { label: 'W1', rate: 0.58 }, { label: 'W2', rate: 0.44 }, { label: 'W3', rate: 0.39 }] },
+        { label: 'Jan W3', size: 1510, periods: [{ label: 'W0', rate: 1 }, { label: 'W1', rate: 0.65 }, { label: 'W2', rate: 0.50 }] },
+        { label: 'Jan W4', size: 1620, periods: [{ label: 'W0', rate: 1 }, { label: 'W1', rate: 0.60 }] },
+      ],
+      { title: 'Weekly retention', appearance: 'light', color: 'always' },
+    )],
+  ];
   for (const [name, out] of cases) {
-    it(`${name}: every row is exactly the panel width`, () => {
-      const lines = out.split('\n');
-      // Sanity: it really is a panel (rounded corners top and bottom).
-      expect(stripAnsi(lines[0] ?? '').startsWith('╭')).toBe(true);
-      expect(stripAnsi(lines.at(-1) ?? '').startsWith('╰')).toBe(true);
-      for (const line of lines) expect(visW(line)).toBe(width);
+    it(`${name}: one identical visible width per row, single-column right border`, () => {
+      expect([...new Set(out.split('\n').map(visW))]).toEqual([DEFAULT_WIDTH]);
+      for (const line of out.split('\n')) {
+        expect(rightBorder.has([...stripAnsi(line)].at(-1) ?? '')).toBe(true);
+      }
     });
   }
 });
@@ -290,5 +364,80 @@ describe('design system — dashboard composition', () => {
     // panels still render side-by-side (two borders on a KPI-row line)
     const kpiRow = out.split('\n').find((l: string) => l.includes('Signups'));
     expect(kpiRow && kpiRow.includes('Churn')).toBe(true);
+  });
+
+  it('threads appearance into every sub-panel (no dark-default leak on a light board)', () => {
+    // The dashboard must pass its appearance down to each cell; otherwise a
+    // sub-panel re-resolves appearance, defaults to dark, and (e.g.) a funnel
+    // track renders as a dark block on a light dashboard.
+    const light = renderDashboard(spec, { width: 120, color: 'always', appearance: 'light' });
+    const dark = renderDashboard(spec, { width: 120, color: 'always', appearance: 'dark' });
+    // Same geometry, different colors.
+    expect(stripAnsi(light)).toBe(stripAnsi(dark));
+    expect(light).not.toBe(dark);
+    // The funnel/bar track block is fg(THEME.track). Light track is the pale
+    // gray rgb(212,219,233); dark track is rgb(54,60,82). A light board must
+    // carry the light track and never the dark one (the bug this fixes).
+    expect(light).toContain('38;2;212;219;233');
+    expect(light).not.toContain('38;2;54;60;82');
+    expect(dark).toContain('38;2;54;60;82');
+  });
+});
+
+describe('design system — appearance (light / dark adaptation)', () => {
+  // Detection + override resolution. Explicit wins; auto reads COLORFGBG; the
+  // unknown / unset cases default to dark so there is no regression.
+  it('resolveAppearance: explicit wins, auto detects COLORFGBG, default dark', () => {
+    expect(resolveAppearance({ appearance: 'light' })).toBe('light');
+    expect(resolveAppearance({ appearance: 'dark', env: { COLORFGBG: '0;15' } })).toBe('dark');
+    expect(resolveAppearance()).toBe('dark'); // unset → dark (no regression)
+    expect(resolveAppearance({ appearance: 'auto', env: {} })).toBe('dark'); // unknown → dark
+    expect(resolveAppearance({ appearance: 'auto', env: { COLORFGBG: '0;15' } })).toBe('light'); // bg 15 = light
+    expect(resolveAppearance({ appearance: 'auto', env: { COLORFGBG: '0;7' } })).toBe('light'); // bg 7 = white
+    expect(resolveAppearance({ appearance: 'auto', env: { COLORFGBG: '15;0' } })).toBe('dark'); // bg 0 = dark
+    expect(resolveAppearance({ appearance: 'auto', env: { COLORFGBG: '15;default;0' } })).toBe('dark'); // 3-field
+    expect(resolveAppearance({ appearance: 'auto', env: { COLORFGBG: '15;default' } })).toBe('dark'); // bg "default"
+  });
+
+  it('THEME and heat() are live views onto the active palette', () => {
+    setAppearance('dark');
+    const darkInk = { ...THEME.ink };
+    const darkColdCell = heat(0);
+    setAppearance('light');
+    const lightInk = { ...THEME.ink };
+    const lightColdCell = heat(0);
+    // Dark ink is near-white (bright on dark fills); light ink is deep navy.
+    expect(darkInk.r).toBeGreaterThan(200);
+    expect(lightInk.r).toBeLessThan(80);
+    // The light heat ramp's coldest cell is a faint-but-visible tint: light
+    // enough to read as "low" on white, but clearly a tinted cell (not the bare
+    // background) so a low cohort is distinguishable from an absent one. The
+    // dark ramp's coldest cell is near the dark background.
+    expect(lightColdCell.r).toBeGreaterThan(200);
+    expect(lightColdCell.r).toBeLessThan(240);
+    expect(darkColdCell.r).toBeLessThan(80);
+    setAppearance('dark'); // restore default so later suites are unaffected
+  });
+
+  it('renderers emit different colors per appearance but identical geometry', () => {
+    const rows = [{ label: 'Chrome', value: 60 }, { label: 'Safari', value: 40 }];
+    const dark = renderBarChart(rows, { width: 60, color: 'always', appearance: 'dark' });
+    const light = renderBarChart(rows, { width: 60, color: 'always', appearance: 'light' });
+    // Different palettes → different ANSI bytes.
+    expect(dark).not.toBe(light);
+    // …but the ANSI-stripped geometry is byte-identical.
+    expect(stripAnsi(dark)).toBe(stripAnsi(light));
+  });
+
+  it('applies the appearance folded into render options (no global leak)', () => {
+    // Rendering light then reading getAppearance() reflects the last render.
+    renderBarChart([{ label: 'A', value: 1 }], { width: 40, color: 'always', appearance: 'light' });
+    expect(getAppearance()).toBe('light');
+    renderBarChart([{ label: 'A', value: 1 }], { width: 40, color: 'always', appearance: 'dark' });
+    expect(getAppearance()).toBe('dark');
+    // An unset appearance resolves back to dark (no leak from a prior light render).
+    renderBarChart([{ label: 'A', value: 1 }], { width: 40, color: 'always', appearance: 'light' });
+    renderBarChart([{ label: 'A', value: 1 }], { width: 40, color: 'always' });
+    expect(getAppearance()).toBe('dark');
   });
 });

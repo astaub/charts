@@ -1,4 +1,4 @@
-import { categorical, dim, fg, FULL_BLOCK, THEME, type RGB } from './theme.js';
+import { bodyText, categorical, fg, FULL_BLOCK, mutedText, THEME, type RGB } from './theme.js';
 import { legend as legendComponent, padEnd, padStart, panel, type LegendItem } from './components.js';
 import { makeRenderCtx } from './render-context.js';
 
@@ -87,13 +87,14 @@ export function renderStackedBarChart(buckets: StackedBarBucketDatum[], options:
     }
   }
   const header = padEnd(ctx, '', bucketWidth) + gap + padEnd(ctx, '', barWidth) + gap + padStart(ctx, 'Total', totalWidth);
-  body.push(ctx.color ? dim(header) : header, '');
+  body.push(ctx.color ? mutedText(header) : header, '');
 
   for (const bucket of cleanBuckets) {
-    const label = padEnd(ctx, ctx.truncate(bucket.label, bucketWidth), bucketWidth);
+    const rawLabel = padEnd(ctx, ctx.truncate(bucket.label, bucketWidth), bucketWidth);
+    const label = ctx.color ? bodyText(rawLabel) : rawLabel;
     const bar = renderStack(ctx, bucket, segments, barWidth);
     const total = padStart(ctx, formatNumber(bucket.total), totalWidth);
-    body.push(`${label}${gap}${bar}${gap}${ctx.color ? dim(total) : total}`);
+    body.push(`${label}${gap}${bar}${gap}${ctx.color ? mutedText(total) : total}`);
   }
 
   return panel(ctx, {

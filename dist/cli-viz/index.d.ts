@@ -4,6 +4,7 @@ export { renderGroupedBarChart, type GroupedBarBucketDatum, type GroupedBarChart
 export { renderWaterfallChart, type WaterfallChartOptions, type WaterfallStep, type WaterfallStepKind, } from './waterfall.js';
 export { renderBigNumber, type BigNumberColorMode, type BigNumberFormat, type BigNumberOptions, type BigNumberUnit, } from './bignumber.js';
 export { BrailleCanvas } from './braille.js';
+import { type AppearanceMode } from './theme.js';
 export * from './theme.js';
 export { colorLabel, deltaBadge, inlineSparkline, legend, meter, meterTable, panel, swatch, type DeltaOptions, type LegendItem, type MeterRow, type MeterTableSpec, type PanelOptions, type RenderCtx, } from './components.js';
 export { makeRenderCtx } from './render-context.js';
@@ -15,6 +16,8 @@ export interface CliVizOptions {
     color?: CliVizColorMode;
     isTTY?: boolean;
     env?: Record<string, string | undefined>;
+    /** Background appearance the chart is tuned for: 'light' | 'dark' | 'auto'. Default 'dark'. */
+    appearance?: AppearanceMode;
     barStyle?: 'ascii' | 'blocks';
     /** Panel title drawn into the top border (paneled charts only). */
     title?: string;

@@ -61,6 +61,15 @@ describe('agentviz cli renderer', () => {
     });
   });
 
+  it('parses --appearance (space and equals forms) and rejects bad values', () => {
+    expect(parseAgentVizArgs(['bar', '--appearance', 'light'])).toEqual({ chart: 'bar', appearance: 'light' });
+    expect(parseAgentVizArgs(['bar', '--appearance=dark'])).toEqual({ chart: 'bar', appearance: 'dark' });
+    expect(parseAgentVizArgs(['bar', '--appearance', 'auto'])).toEqual({ chart: 'bar', appearance: 'auto' });
+    expect(() => parseAgentVizArgs(['bar', '--appearance', 'neon'])).toThrowError(
+      /--appearance must be light\|dark\|auto/,
+    );
+  });
+
   it('parses a single --vline flag with at and label', () => {
     expect(parseAgentVizArgs(['line', '--vline', 'at=Feb,label=launch'])).toEqual({
       chart: 'line',

@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import { type BarChartDatum, type FilterDatum, type FunnelStepDatum, type GroupedBarMarker, type LineChartLineStyle, type LineChartSeries, type LineChartShade, type LineChartVline, type LineChartXAxisLabels, type RetentionCohortDatum, type ScatterPlotPoint, type StackedBarBucketDatum, type SuggestedFilterDatum, type TableColumn, type TableRow, type WaterfallStep } from './cli-viz/index.js';
+import { type AppearanceMode } from './cli-viz/theme.js';
 type ChartKind = 'bar' | 'bignumber' | 'dashboard' | 'filters' | 'funnel' | 'grouped' | 'line' | 'retention' | 'scatter' | 'sparkline' | 'stacked' | 'table' | 'waterfall';
 interface ParsedArgs {
     chart?: ChartKind;
@@ -14,6 +15,7 @@ interface ParsedArgs {
     lineStyle?: LineChartLineStyle;
     integrity?: boolean;
     verify?: boolean;
+    appearance?: AppearanceMode;
 }
 interface AgentVizSpec {
     chart?: ChartKind;

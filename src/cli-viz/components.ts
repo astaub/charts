@@ -12,9 +12,10 @@ import {
   BOX,
   FULL_BLOCK,
   THEME,
+  bodyText,
   bold,
-  dim,
   fg,
+  mutedText,
   barGlyphs,
   ramp,
   type RGB,
@@ -80,7 +81,7 @@ export interface DeltaOptions {
  * This is the shared green-up / red-down pattern first used in the waterfall.
  */
 export function deltaBadge(ctx: RenderCtx, change: number, opts: DeltaOptions = {}): string {
-  if (!Number.isFinite(change)) return ctx.color ? dim('n/a') : 'n/a';
+  if (!Number.isFinite(change)) return ctx.color ? mutedText('n/a') : 'n/a';
   const arrow = change > 0 ? '▲' : change < 0 ? '▼' : '→';
   const magnitude =
     opts.as === 'number'
@@ -91,7 +92,7 @@ export function deltaBadge(ctx: RenderCtx, change: number, opts: DeltaOptions = 
         }).format(Math.abs(change));
   const text = `${arrow} ${magnitude}`;
   if (!ctx.color) return text;
-  if (change === 0) return dim(text);
+  if (change === 0) return mutedText(text);
   const good = (opts.goodDirection ?? 'up') === 'up' ? change > 0 : change < 0;
   return fg(good ? THEME.positive : THEME.negative, text);
 }
@@ -213,13 +214,16 @@ export function meterTable(ctx: RenderCtx, spec: MeterTableSpec): string[] | nul
     cells
       .map((cell, i) => {
         const padded = padStart(ctx, cell, colWidths[i] ?? 0);
-        return styled && ctx.color && dimCols[i] ? dim(padded) : padded;
+        if (!styled || !ctx.color) return padded;
+        // Dim columns → muted; primary columns → explicit body text (so the
+        // value reads on a light background instead of the pale default fg).
+        return dimCols[i] ? mutedText(padded) : bodyText(padded);
       })
       .join(gap);
 
   const headerLine =
     ' '.repeat(spec.labelWidth) + gap + ' '.repeat(meterWidth) + spacer + rightCells(spec.headers, false);
-  const lines: string[] = [ctx.color ? dim(headerLine) : headerLine, ''];
+  const lines: string[] = [ctx.color ? mutedText(headerLine) : headerLine, ''];
 
   // Optional goal/threshold reference line: a dashed vertical drawn across every
   // meter at `fraction`, with a label placed above it (in the warn accent).
@@ -301,7 +305,7 @@ export function panel(ctx: RenderCtx, opts: PanelOptions): string[] {
   const accent = opts.accent ?? THEME.accent;
   const inner = Math.max(1, opts.width - 2 - PAD * 2);
   const horiz = (text: string) => (ctx.color ? fg(accent, text) : text);
-  const chrome = (text: string) => (ctx.color ? dim(text) : text);
+  const chrome = (text: string) => (ctx.color ? mutedText(text) : text);
 
   const lines: string[] = [];
 
@@ -326,7 +330,7 @@ export function panel(ctx: RenderCtx, opts: PanelOptions): string[] {
   // Subtitle (dim) + blank spacer.
   if (opts.subtitle) {
     const sub = ctx.truncate(opts.subtitle, inner);
-    lines.push(bodyLine(ctx.color ? dim(sub) : sub));
+    lines.push(bodyLine(ctx.color ? mutedText(sub) : sub));
     lines.push(bodyLine(''));
   }
 
@@ -335,7 +339,7 @@ export function panel(ctx: RenderCtx, opts: PanelOptions): string[] {
   if (opts.footer) {
     lines.push(bodyLine(''));
     const foot = ctx.truncate(opts.footer, inner);
-    lines.push(bodyLine(ctx.color ? dim(foot) : foot));
+    lines.push(bodyLine(ctx.color ? mutedText(foot) : foot));
   }
 
   // Bottom border.

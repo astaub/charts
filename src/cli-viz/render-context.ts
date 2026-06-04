@@ -6,7 +6,7 @@
 // consistent, ANSI-aware width model). It depends only on ./theme (no chart
 // code), so any renderer can import it without a cycle.
 
-import { resolveColor, type ColorMode } from './theme.js';
+import { applyAppearance, resolveColor, type AppearanceMode, type ColorMode } from './theme.js';
 import type { RenderCtx } from './components.js';
 
 const ANSI_PATTERN = /\u001B\[[0-?]*[ -/]*[@-~]/g;
@@ -83,14 +83,21 @@ export interface RenderContextOptions {
   color?: ColorMode;
   isTTY?: boolean;
   env?: Record<string, string | undefined>;
+  /** Background appearance: 'light' | 'dark' | 'auto'. Default 'dark'. */
+  appearance?: AppearanceMode;
 }
 
 /**
  * Bundle the color decision and the (single) width helpers into the context the
  * shared components draw with. Every paneled chart builds one of these so
  * chrome, color, and width math stay consistent across kinds.
+ *
+ * This is also the single place appearance is activated: resolving it here (and
+ * flipping the active palette) means every kind that builds a render context
+ * adapts to a light/dark background with no per-kind change.
  */
 export function makeRenderCtx(options: RenderContextOptions = {}): RenderCtx {
+  applyAppearance({ appearance: options.appearance, env: options.env });
   return {
     color: resolveColor({ color: options.color, isTTY: options.isTTY, env: options.env }),
     visualWidth,
