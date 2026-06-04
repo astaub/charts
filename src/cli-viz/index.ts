@@ -95,6 +95,10 @@ export interface BarChartDatum {
 
 export interface BarChartOptions extends CliVizOptions {
   denominator?: number;
+  /** Draw a dashed reference line across the bars at this value (e.g. a target). */
+  goal?: number;
+  /** Label for the reference line; defaults to "goal". */
+  goalLabel?: string;
 }
 
 export interface LineChartPoint {
@@ -271,11 +275,19 @@ export function renderBarChart(rows: BarChartDatum[], options: BarChartOptions =
     fraction: ratio(row.value, maxValue),
     values: [formatNumber(row.value), formatPercent(ratio(row.value, row.denominator ?? fallbackDenominator))],
   }));
+  // A goal renders as a dashed reference line across the bars at its value
+  // (scaled to the same max as the bars), with a labeled marker above.
+  const goal = typeof options.goal === 'number' && Number.isFinite(options.goal) && options.goal > 0 ? options.goal : undefined;
+  const reference =
+    goal !== undefined && maxValue > 0
+      ? { fraction: goal / maxValue, label: `${sanitizeText(options.goalLabel ?? 'goal')} ${formatNumber(goal)}` }
+      : undefined;
   const body = meterTable(ctx, {
     rows: meterRows,
     headers: ['Value', 'Share'],
     labelWidth,
     inner: width - 4,
+    ...(reference ? { reference } : {}),
   });
 
   // Fall back to the plain stacked list when the panel can't host a legible meter.

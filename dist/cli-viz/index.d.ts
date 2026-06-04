@@ -32,6 +32,10 @@ export interface BarChartDatum {
 }
 export interface BarChartOptions extends CliVizOptions {
     denominator?: number;
+    /** Draw a dashed reference line across the bars at this value (e.g. a target). */
+    goal?: number;
+    /** Label for the reference line; defaults to "goal". */
+    goalLabel?: string;
 }
 export interface LineChartPoint {
     label: string;

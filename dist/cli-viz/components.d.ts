@@ -32,7 +32,7 @@ export declare function deltaBadge(ctx: RenderCtx, change: number, opts?: DeltaO
  * block glyphs. Returns '' when there is no finite data.
  */
 export declare function inlineSparkline(ctx: RenderCtx, values: number[], color?: RGB): string;
-export declare function meter(ctx: RenderCtx, fraction: number, cells: number, color: RGB): string;
+export declare function meter(ctx: RenderCtx, fraction: number, cells: number, color: RGB, referenceAt?: number): string;
 export interface MeterRow {
     label: string;
     color: RGB;
@@ -53,6 +53,11 @@ export interface MeterTableSpec {
     gap?: number;
     /** Hard cap on meter width so long bars stay elegant; defaults to half the inner width. */
     meterMax?: number;
+    /** A dashed goal/threshold line drawn across every meter at `fraction` of the bar, with a label above. */
+    reference?: {
+        fraction: number;
+        label: string;
+    };
 }
 /**
  * Returns the body lines (dim header, blank spacer, one line per row) or null

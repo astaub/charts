@@ -144,6 +144,7 @@ describe('design system — panel right-border alignment (no ragged edge)', () =
       { label: 'End', value: 110, kind: 'end' },
     ], { width, title: 't', color: 'always' })],
     ['bignumber', renderBigNumber(1234, { width, label: 'Signups', previous: 1102, sparkline: [800, 1102, 1050, 1234], color: 'always' })],
+    ['bar-goal', renderBarChart([{ label: 'A', value: 9 }, { label: 'B', value: 3 }], { width, title: 't', goal: 6, goalLabel: 'target', color: 'always' })],
   ];
 
   for (const [name, out] of cases) {

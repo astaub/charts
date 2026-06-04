@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+- feat(bar): **goal / reference lines.** `renderBarChart` now accepts `goal`
+  (+ `goalLabel`) and draws a dashed vertical threshold line (`┊`, warn accent)
+  across every bar at the goal's value, with a labeled marker above — the
+  horizontal-bar analogue of the line chart's existing goal line, so "did we hit
+  target?" reads at a glance. Implemented as shared support on `meter` (optional
+  `referenceAt` column) and `meterTable` (`reference: { fraction, label }`), so
+  any meter-based chart can adopt it. Reference lines use a consistent amber
+  accent across line + bar. Clean monochrome degrade; edges stay one clean
+  column. Freeze shots in `docs/screenshots/` (bar-goal-line, line-goal-line).
+
 - feat(bignumber): the big-number widget is now a composable **KPI tile** on the
   shared design system — a titled `panel` with a bold value, a semantic delta
   (`deltaBadge`, green-good / red-bad honoring `goodDirection`), and a

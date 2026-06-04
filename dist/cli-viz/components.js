@@ -87,16 +87,37 @@ export function inlineSparkline(ctx, values, color) {
 // ---------------------------------------------------------------------------
 // Meter — a sub-cell-precise horizontal bar with a faint track, colored fill.
 // ---------------------------------------------------------------------------
-export function meter(ctx, fraction, cells, color) {
+const REFERENCE_GLYPH = '┊'; // dashed vertical — a goal/threshold marker
+export function meter(ctx, fraction, cells, color, referenceAt) {
     const { filled, track } = barGlyphs(fraction, cells);
-    // Mono keeps the ░ track so the channel reads without color. In color mode a
-    // smooth dark full-block channel looks far cleaner than the dotted shade.
-    if (!ctx.color)
-        return filled + track;
-    const trackCells = [...track].length;
-    const filledPart = filled.length > 0 ? fg(color, filled) : '';
-    const trackPart = trackCells > 0 ? fg(THEME.track, FULL_BLOCK.repeat(trackCells)) : '';
-    return filledPart + trackPart;
+    const filledArr = [...filled];
+    const trackArr = [...track];
+    // Fast path: no reference marker → the original run-based rendering.
+    if (referenceAt === undefined || referenceAt < 0 || referenceAt >= cells) {
+        // Mono keeps the ░ track so the channel reads without color. In color mode a
+        // smooth dark full-block channel looks far cleaner than the dotted shade.
+        if (!ctx.color)
+            return filled + track;
+        const trackCells = trackArr.length;
+        const filledPart = filled.length > 0 ? fg(color, filled) : '';
+        const trackPart = trackCells > 0 ? fg(THEME.track, FULL_BLOCK.repeat(trackCells)) : '';
+        return filledPart + trackPart;
+    }
+    // A goal/threshold reference line is drawn at `referenceAt`, over fill or track.
+    let out = '';
+    for (let i = 0; i < cells; i += 1) {
+        if (i === referenceAt) {
+            out += ctx.color ? fg(THEME.warn, REFERENCE_GLYPH) : REFERENCE_GLYPH;
+            continue;
+        }
+        const inFilled = i < filledArr.length;
+        if (!ctx.color) {
+            out += inFilled ? filledArr[i] ?? FULL_BLOCK : trackArr[i - filledArr.length] ?? '░';
+            continue;
+        }
+        out += inFilled ? fg(color, filledArr[i] ?? FULL_BLOCK) : fg(THEME.track, FULL_BLOCK);
+    }
+    return out;
 }
 /**
  * Returns the body lines (dim header, blank spacer, one line per row) or null
@@ -124,9 +145,23 @@ export function meterTable(ctx, spec) {
         .join(gap);
     const headerLine = ' '.repeat(spec.labelWidth) + gap + ' '.repeat(meterWidth) + spacer + rightCells(spec.headers, false);
     const lines = [ctx.color ? dim(headerLine) : headerLine, ''];
+    // Optional goal/threshold reference line: a dashed vertical drawn across every
+    // meter at `fraction`, with a label placed above it (in the warn accent).
+    let referenceAt;
+    if (spec.reference && spec.reference.fraction >= 0) {
+        referenceAt = Math.max(0, Math.min(meterWidth - 1, Math.round(spec.reference.fraction * meterWidth)));
+        const meterStart = spec.labelWidth + gapN;
+        const x = meterStart + referenceAt;
+        const labelText = `${REFERENCE_GLYPH} ${spec.reference.label}`;
+        const labelWidthVis = ctx.visualWidth(labelText);
+        // Anchor the label to the marker, then keep it inside the panel.
+        const start = Math.max(0, Math.min(spec.inner - labelWidthVis, x));
+        const labelLine = ' '.repeat(start) + (ctx.color ? fg(THEME.warn, labelText) : labelText);
+        lines.splice(1, 0, labelLine); // sits between the header and the blank spacer
+    }
     for (const row of spec.rows) {
         const label = padEnd(ctx, colorLabel(ctx, ctx.truncate(row.label, spec.labelWidth), row.color), spec.labelWidth);
-        const bars = meter(ctx, row.fraction, meterWidth, row.color);
+        const bars = meter(ctx, row.fraction, meterWidth, row.color, referenceAt);
         lines.push(`${label}${gap}${bars}${spacer}${rightCells(row.values, true)}`);
     }
     return lines;
