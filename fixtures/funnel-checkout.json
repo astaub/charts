@@ -1,0 +1,11 @@
+{
+  "chart": "funnel",
+  "title": "Checkout conversion",
+  "steps": [
+    { "label": "Product viewed", "count": 48210 },
+    { "label": "Added to cart", "count": 15630 },
+    { "label": "Began checkout", "count": 9120 },
+    { "label": "Payment entered", "count": 6740 },
+    { "label": "Order placed", "count": 5980 }
+  ]
+}

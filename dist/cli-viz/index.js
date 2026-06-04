@@ -11,6 +11,10 @@ export { renderWaterfallChart, } from './waterfall.js';
 export { renderBigNumber, } from './bignumber.js';
 import { BrailleCanvas } from './braille.js';
 export { BrailleCanvas } from './braille.js';
+import { THEME, rampShade, resolveColor } from './theme.js';
+import { meterTable, panel } from './components.js';
+export * from './theme.js';
+export { colorLabel, legend, meter, meterTable, panel, swatch, } from './components.js';
 export function renderSparkline(values, options = {}) {
     const width = clampWidth(options.width);
     const label = sanitizeText(options.label ?? 'Sparkline');
@@ -39,21 +43,33 @@ export function renderBarChart(rows, options = {}) {
     }));
     const fallbackDenominator = cleanRows.reduce((sum, row) => sum + row.value, 0);
     const maxValue = Math.max(...cleanRows.map((row) => row.value), 0);
-    const metricWidth = Math.max(12, longest(cleanRows.map((row) => formatCountRatio(row.value, row.denominator ?? fallbackDenominator))));
     const labelWidth = Math.min(24, Math.max(8, longest(cleanRows.map((row) => row.label))));
-    if (width < NARROW_WIDTH || labelWidth + metricWidth + 8 > width) {
+    // Beautiful paneled layout: color-coded label · capped sub-cell meter · value
+    // · share, built on the shared meterTable so every bar-style chart matches.
+    const ctx = makeRenderCtx(options);
+    const meterRows = cleanRows.map((row, index) => ({
+        label: row.label,
+        color: rampShade(index, cleanRows.length),
+        fraction: ratio(row.value, maxValue),
+        values: [formatNumber(row.value), formatPercent(ratio(row.value, row.denominator ?? fallbackDenominator))],
+    }));
+    const body = meterTable(ctx, {
+        rows: meterRows,
+        headers: ['Value', 'Share'],
+        labelWidth,
+        inner: width - 4,
+    });
+    // Fall back to the plain stacked list when the panel can't host a legible meter.
+    if (body === null || width < NARROW_WIDTH) {
         return renderBarChartBlocks(cleanRows, fallbackDenominator, width);
     }
-    const barWidth = Math.max(4, width - labelWidth - metricWidth - 4);
-    const lines = [
-        `${padCell('Label', labelWidth, 'left')}  ${padCell('Value', metricWidth, 'left')}  Bar`,
-        `${repeat('-', labelWidth)}  ${repeat('-', metricWidth)}  ${repeat('-', barWidth)}`,
-    ];
-    for (const row of cleanRows) {
-        const denominator = row.denominator ?? fallbackDenominator;
-        lines.push(`${padCell(row.label, labelWidth, 'left')}  ${padCell(formatCountRatio(row.value, denominator), metricWidth, 'left')}  ${bar(row.value, maxValue, barWidth, options.barStyle)}`);
-    }
-    return lines.map((line) => fitLine(line, width).trimEnd()).join('\n');
+    return panel(ctx, {
+        body,
+        width,
+        accent: THEME.accent,
+        ...(options.title ? { title: sanitizeText(options.title) } : {}),
+        ...(options.subtitle ? { subtitle: sanitizeText(options.subtitle) } : {}),
+    }).join('\n');
 }
 export function renderLineChart(series, options = {}) {
     const width = clampWidth(options.width);
@@ -341,41 +357,35 @@ export function renderFunnelBars(steps, options = {}) {
     const firstCount = cleanSteps[0]?.count ?? 0;
     const maxCount = Math.max(...cleanSteps.map((step) => step.count), 0);
     const labelWidth = Math.min(22, Math.max(8, longest(cleanSteps.map((step) => step.label))));
-    const countWidth = Math.max(12, longest(cleanSteps.map((step) => formatCountRatio(step.count, step.denominator ?? firstCount))));
-    const retentionWidth = 9;
-    const previousWidth = 9;
-    if (width < NARROW_WIDTH || labelWidth + countWidth + retentionWidth + previousWidth + 12 > width) {
+    // Beautiful paneled funnel: color-coded step (deep → light as it drains) ·
+    // capped sub-cell meter · count · retain-of-first · from-previous conversion.
+    const ctx = makeRenderCtx(options);
+    const meterRows = cleanSteps.map((step, index) => {
+        const previous = index === 0 ? undefined : cleanSteps[index - 1]?.count ?? 0;
+        const prev = previous === undefined ? 'start' : formatPercent(step.previousRate ?? ratio(step.count, previous));
+        return {
+            label: step.label,
+            color: rampShade(index, cleanSteps.length),
+            fraction: ratio(step.count, maxCount),
+            values: [formatNumber(step.count), formatPercent(ratio(step.count, firstCount)), prev],
+        };
+    });
+    const body = meterTable(ctx, {
+        rows: meterRows,
+        headers: ['Count', 'Retain', 'Prev'],
+        labelWidth,
+        inner: width - 4,
+    });
+    if (body === null || width < NARROW_WIDTH) {
         return renderFunnelBlocks(cleanSteps, firstCount, width);
     }
-    const barWidth = Math.max(4, width - labelWidth - countWidth - retentionWidth - previousWidth - 10);
-    const lines = [
-        [
-            padCell('Step', labelWidth, 'left'),
-            padCell('Count', countWidth, 'left'),
-            padCell('Retain', retentionWidth, 'right'),
-            padCell('Prev', previousWidth, 'right'),
-            'Bar',
-        ].join('  '),
-        [
-            repeat('-', labelWidth),
-            repeat('-', countWidth),
-            repeat('-', retentionWidth),
-            repeat('-', previousWidth),
-            repeat('-', barWidth),
-        ].join('  '),
-    ];
-    cleanSteps.forEach((step, index) => {
-        const denominator = step.denominator ?? firstCount;
-        const previous = index === 0 ? undefined : cleanSteps[index - 1]?.count ?? 0;
-        lines.push([
-            padCell(step.label, labelWidth, 'left'),
-            padCell(formatCountRatio(step.count, denominator), countWidth, 'left'),
-            padCell(formatPercent(ratio(step.count, firstCount)), retentionWidth, 'right'),
-            padCell(previous === undefined ? 'start' : formatPercent(step.previousRate ?? ratio(step.count, previous)), previousWidth, 'right'),
-            bar(step.count, maxCount, barWidth, options.barStyle),
-        ].join('  '));
-    });
-    return lines.map((line) => fitLine(line, width).trimEnd()).join('\n');
+    return panel(ctx, {
+        body,
+        width,
+        accent: THEME.accent,
+        ...(options.title ? { title: sanitizeText(options.title) } : {}),
+        ...(options.subtitle ? { subtitle: sanitizeText(options.subtitle) } : {}),
+    }).join('\n');
 }
 export function renderRetentionHeatmap(cohorts, options = {}) {
     const width = clampWidth(options.width);
@@ -446,6 +456,16 @@ export function resolveColorEnabled(options = {}) {
     if (options.color === 'auto')
         return options.isTTY ?? process.stdout.isTTY === true;
     return false;
+}
+// Bundles the color decision and the (single) display-width helpers into the
+// context the shared components draw with. Every paneled chart builds one of
+// these so chrome, color, and width math stay consistent across kinds.
+function makeRenderCtx(options) {
+    return {
+        color: resolveColor({ color: options.color, isTTY: options.isTTY, env: options.env }),
+        visualWidth,
+        truncate: truncateLine,
+    };
 }
 function renderBarChartBlocks(rows, fallbackDenominator, width) {
     return rows
@@ -1040,16 +1060,6 @@ function heatMarker(rate, colorEnabled) {
 }
 function formatCountRatio(count, denominator) {
     return `${formatNumber(count)} / ${formatNumber(denominator)} (${formatPercent(ratio(count, denominator))})`;
-}
-function bar(value, maxValue, width, style = 'ascii') {
-    if (width <= 0)
-        return '';
-    const empty = style === 'blocks' ? '░' : '.';
-    const filledChar = style === 'blocks' ? '▓' : '#';
-    if (maxValue <= 0 || value <= 0)
-        return repeat(empty, width);
-    const filled = Math.max(1, Math.round((value / maxValue) * width));
-    return `${repeat(filledChar, Math.min(width, filled))}${repeat(empty, Math.max(0, width - filled))}`;
 }
 function sparkChar(value, min, max) {
     if (max === min)

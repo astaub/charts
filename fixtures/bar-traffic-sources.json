@@ -1,0 +1,12 @@
+{
+  "chart": "bar",
+  "title": "Signups by source",
+  "rows": [
+    { "label": "Organic search", "value": 1840 },
+    { "label": "Direct", "value": 1210 },
+    { "label": "Referral", "value": 760 },
+    { "label": "Social", "value": 540 },
+    { "label": "Paid ads", "value": 410 },
+    { "label": "Email", "value": 230 }
+  ]
+}

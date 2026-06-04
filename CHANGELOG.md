@@ -1,5 +1,38 @@
 # @staub/agentviz CHANGELOG
 
+## Unreleased
+
+- feat(design-system): **beautiful charts by default.** New shared component
+  layer — one set of border/title/subtitle/legend/color-coded-label primitives
+  plus a sub-cell-precise meter — so every chart kind reads as one product
+  instead of an independently-styled plotter. Two new modules:
+  - `cli-viz/theme.ts` — the color/degrade layer (truecolor 24-bit on a TTY or
+    under `FORCE_COLOR`, clean monochrome Unicode when piped, off entirely under
+    `NO_COLOR`), one canonical blue ramp (`#1d4aff` → light), a coherent
+    categorical palette, and the glyph sets (eighth blocks `▏▎▍▌▋▊▉█`, box
+    drawing, shades). Exported: `ramp`, `rampShade`, `categorical`, `barGlyphs`,
+    `resolveColor`, `resolveCliColorMode`, `fg`/`bg`/`dim`/`bold`, `THEME`.
+  - `cli-viz/components.ts` — composable chrome: `panel` (rounded border with
+    the title in the top edge), `legend`, `swatch`, `colorLabel`, `meter`, and
+    `meterTable` (the shared body for any horizontal-bar chart). Assembled with
+    sensible defaults so the common case is one call and comes out beautiful
+    with zero tuning.
+- feat(bar, funnel): rebuilt on the component system — color-coded labels that
+  match a deep→light gradient, a capped block meter with a faint track channel,
+  right-aligned numeric columns under a dim header, all inside a titled panel.
+  Below 54 columns (or when a legible meter won't fit) they fall back to the
+  existing stacked list. Color is resolved at the CLI boundary and folds into
+  the integrity block, so `--integrity` output still round-trips through
+  `agentviz verify` in both mono and color.
+- feat(fixtures): realistic, production-shaped sample data under `fixtures/`
+  (activation/checkout funnels, browser-share/traffic/MRR bars) plus a test that
+  every fixture parses and renders within width in both modes.
+- fix(grouped): the `cleanDisplayText` control-character strip used raw control
+  bytes inside a regex character class, which some engines (Bun) reject as an
+  out-of-order range; replaced with explicit `\xNN` escapes (behavior identical).
+- The public input schemas are unchanged. The library default stays color-off;
+  the redesign only changes the wide (paneled) rendering of `bar`/`funnel`.
+
 ## 0.3.0 (2026-06-02)
 
 - feat(grouped): new `renderGroupedBarChart` API and `grouped` CLI chart — the

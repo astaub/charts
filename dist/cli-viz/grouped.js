@@ -302,7 +302,7 @@ function sanitizeText(value) {
 function cleanDisplayText(value) {
     return stripAnsi(value)
         .replace(/\r?\n/g, ' ')
-        .replace(/[ ---]/g, '')
+        .replace(/[\x00-\x08\x0b\x0c\x0e-\x1f\x7f-\x9f]/g, '')
         .replace(/[<>]/g, '');
 }
 function stripAnsi(value) {

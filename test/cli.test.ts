@@ -49,7 +49,8 @@ describe('agentviz cli renderer', () => {
 
     expect(output).toContain('Visited');
     expect(output).toContain('Paid');
-    expect(output).toContain('18 / 120 (15%)');
+    expect(output).toContain('18');
+    expect(output).toContain('15%');
   });
 
   it('parses chart, file, and width arguments', () => {

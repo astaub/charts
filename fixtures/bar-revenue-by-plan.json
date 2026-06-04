@@ -1,0 +1,11 @@
+{
+  "chart": "bar",
+  "title": "MRR by plan",
+  "rows": [
+    { "label": "Enterprise", "value": 184200 },
+    { "label": "Business", "value": 96400 },
+    { "label": "Pro", "value": 51800 },
+    { "label": "Starter", "value": 18300 },
+    { "label": "Free trial", "value": 0 }
+  ]
+}

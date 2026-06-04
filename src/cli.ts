@@ -41,6 +41,7 @@ import {
   type WaterfallStep,
 } from './cli-viz/index.js';
 import { verifyIntegrity, wrapWithIntegrity, type RendererCallback } from './integrity.js';
+import { resolveCliColorMode } from './cli-viz/theme.js';
 
 // Package version is read at build time and inlined by tsc. The version is
 // embedded into integrity markers so verify can tell which renderer produced
@@ -149,6 +150,10 @@ const CHARTS = new Set<ChartKind>([
   'waterfall',
 ]);
 
+// Charts rebuilt on the shared design-system panel (border/title live inside
+// the renderer). Grows as more kinds adopt the component set.
+const PANELED = new Set<ChartKind>(['bar', 'funnel']);
+
 export interface RenderAgentVizSpecOptions {
   integrity?: boolean;
   version?: string;
@@ -164,15 +169,21 @@ export function renderAgentVizSpec(
   const objectSpec = normalizeSpec(spec);
   const chart = normalizeChart(chartHint ?? objectSpec.chart);
   const width = cliWidth ?? numberOption(objectSpec.width) ?? numberOption(objectSpec.options?.width);
-  const options = { ...(objectSpec.options ?? {}), ...(width === undefined ? {} : { width }) };
+  const options: Record<string, unknown> = { ...(objectSpec.options ?? {}), ...(width === undefined ? {} : { width }) };
   if (chart === 'line') {
     const merged = mergeLineOptions(objectSpec, lineOverrides);
     Object.assign(options, merged);
   }
+  // Paneled charts draw the title (and subtitle) inside their own border, so
+  // fold them into the renderer options and suppress the external title line.
+  if (PANELED.has(chart) && typeof objectSpec.title === 'string' && objectSpec.title.trim().length > 0) {
+    options.title = objectSpec.title;
+  }
   const output = renderChart(objectSpec, chart, options);
   const filterOutput = renderAttachedFilters(objectSpec, chart, width);
 
-  const rendered = [titleLine(objectSpec.title, width), output, filterOutput].filter(Boolean).join('\n\n');
+  const externalTitle = PANELED.has(chart) ? undefined : titleLine(objectSpec.title, width);
+  const rendered = [externalTitle, output, filterOutput].filter(Boolean).join('\n\n');
   if (!extra.integrity) return rendered;
 
   // Build the canonical embedded spec — the complete set of inputs needed
@@ -527,6 +538,15 @@ async function main(): Promise<void> {
     if (args.lineStyle !== undefined) lineOverrides.lineStyle = args.lineStyle;
     const extra: RenderAgentVizSpecOptions = {};
     if (args.integrity) extra.integrity = true;
+    // Resolve color at the CLI boundary: truecolor on a TTY (or FORCE_COLOR),
+    // clean monochrome when piped, off entirely under NO_COLOR. Folding it into
+    // the spec options means the choice round-trips through the integrity block.
+    if (isRecord(spec)) {
+      const existing = isRecord(spec.options) ? spec.options : {};
+      if (existing.color === undefined) {
+        spec.options = { ...existing, color: resolveCliColorMode() };
+      }
+    }
     process.stdout.write(`${renderAgentVizSpec(spec, args.chart, args.width, lineOverrides, extra)}\n`);
   } catch (error) {
     process.stderr.write(`agentviz: ${error instanceof Error ? error.message : String(error)}\n\n`);

@@ -1,0 +1,11 @@
+{
+  "chart": "funnel",
+  "title": "Activation funnel",
+  "steps": [
+    { "label": "Visited site", "count": 12840 },
+    { "label": "Signed up", "count": 4210 },
+    { "label": "Activated", "count": 2180 },
+    { "label": "Subscribed", "count": 890 },
+    { "label": "Renewed", "count": 410 }
+  ]
+}

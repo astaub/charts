@@ -4,6 +4,8 @@ export { renderGroupedBarChart, type GroupedBarBucketDatum, type GroupedBarChart
 export { renderWaterfallChart, type WaterfallChartOptions, type WaterfallStep, type WaterfallStepKind, } from './waterfall.js';
 export { renderBigNumber, type BigNumberColorMode, type BigNumberFormat, type BigNumberOptions, type BigNumberUnit, } from './bignumber.js';
 export { BrailleCanvas } from './braille.js';
+export * from './theme.js';
+export { colorLabel, legend, meter, meterTable, panel, swatch, type LegendItem, type MeterRow, type MeterTableSpec, type PanelOptions, type RenderCtx, } from './components.js';
 export type CliVizColorMode = 'never' | 'auto' | 'always';
 export type CliVizAlign = 'left' | 'right';
 export type CliVizFormat = 'text' | 'number' | 'percent' | 'ratio';
@@ -13,6 +15,10 @@ export interface CliVizOptions {
     isTTY?: boolean;
     env?: Record<string, string | undefined>;
     barStyle?: 'ascii' | 'blocks';
+    /** Panel title drawn into the top border (paneled charts only). */
+    title?: string;
+    /** Dim subtitle drawn just under the title. */
+    subtitle?: string;
 }
 export interface SparklineOptions extends CliVizOptions {
     label?: string;

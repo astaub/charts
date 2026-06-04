@@ -933,11 +933,15 @@ describe('cli-viz primitives', () => {
       { label: 'BD referral', value: 118, denominator: 512 },
     ];
 
+    // Wide layout: bordered panel, color-coded label · capped block meter ·
+    // value · share. Mono (no color option) degrades to clean Unicode blocks.
     expect(renderBarChart(rows, { width: 96 })).toMatchInlineSnapshot(`
-      "Label        Value            Bar
-      -----------  ---------------  ------------------------------------------------------------------
-      Organic      320 / 512 (63%)  ##################################################################
-      BD referral  118 / 512 (23%)  ########################.........................................."
+      "╭──────────────────────────────────────────────────────────────────────────────────────────────╮
+      │                                                                                 Value  Share │
+      │                                                                                              │
+      │ Organic      ████████████████████████                                             320    63% │
+      │ BD referral  ████████▉░░░░░░░░░░░░░░░                                             118    23% │
+      ╰──────────────────────────────────────────────────────────────────────────────────────────────╯"
     `);
     expect(renderBarChart(rows, { width: 40 })).toMatchInlineSnapshot(`
       "1. Organic
@@ -946,15 +950,16 @@ describe('cli-viz primitives', () => {
       2. BD referral
        value: 118 / 512 (23%)"
     `);
-    expect(renderBarChart([{ label: 'No hits', value: 0, denominator: 100 }], { width: 54 })).toContain('....');
+    // A zero-value bar reads as an empty track (mono uses the ░ shade).
+    expect(renderBarChart([{ label: 'No hits', value: 0, denominator: 100 }], { width: 54 })).toContain('░░░░');
 
     for (const line of renderBarChart([{ label: 'Huge', value: 123456789012345, denominator: 987654321098765 }], { width: 32 }).split('\n')) {
       expect(stripAnsi(line).length).toBeLessThanOrEqual(32);
     }
     const hugeBarAtBoundary = renderBarChart([{ label: 'Huge', value: 123456789012345, denominator: 987654321098765 }], { width: 54 });
-    expect(hugeBarAtBoundary).toContain('123,456,789,012,345 / 987,654,321,098,765');
+    expect(hugeBarAtBoundary).toContain('123,456,789,012,345');
     expect(hugeBarAtBoundary).not.toContain('~');
-    expect(renderBarChart([{ label: 'Zero baseline', value: 10, denominator: 0 }], { width: 54 })).toContain('10 / 0 (0%)');
+    expect(renderBarChart([{ label: 'Zero baseline', value: 10, denominator: 0 }], { width: 54 })).toContain('0%');
   });
 
   it('renders funnel bars with retention and from-previous percentages', () => {
@@ -964,12 +969,16 @@ describe('cli-viz primitives', () => {
       { label: 'Activated workspace', count: 84 },
     ];
 
+    // Wide layout: bordered panel, step label color-coded deep → light as the
+    // funnel drains · capped block meter · count · retain-of-first · from-prev.
     expect(renderFunnelBars(steps, { width: 96 })).toMatchInlineSnapshot(`
-      "Step                  Count                    Retain       Prev  Bar
-      --------------------  --------------------  ---------  ---------  ----------------------------
-      Visited pricing page  1,000 / 1,000 (100%)       100%      start  ############################
-      Started signup        420 / 1,000 (42%)           42%        42%  ############................
-      Activated workspace   84 / 1,000 (8.4%)          8.4%        20%  ##.........................."
+      "╭──────────────────────────────────────────────────────────────────────────────────────────────╮
+      │                                                                         Count  Retain   Prev │
+      │                                                                                              │
+      │ Visited pricing page  ████████████████████████                          1,000    100%  start │
+      │ Started signup        ██████████▏░░░░░░░░░░░░░                            420     42%    42% │
+      │ Activated workspace   ██░░░░░░░░░░░░░░░░░░░░░░                             84    8.4%    20% │
+      ╰──────────────────────────────────────────────────────────────────────────────────────────────╯"
     `);
     expect(renderFunnelBars(steps, { width: 40 })).toMatchInlineSnapshot(`
       "1. Visited pricing page
@@ -986,7 +995,9 @@ describe('cli-viz primitives', () => {
          from previous: 20%
          of first step: 8.4%"
     `);
-    expect(renderFunnelBars([{ label: 'Only step', count: 10 }], { width: 54 })).toContain('10 / 10 (100%)');
+    const onlyStep = renderFunnelBars([{ label: 'Only step', count: 10 }], { width: 54 });
+    expect(onlyStep).toContain('Only step');
+    expect(onlyStep).toContain('100%');
     expect(renderFunnelBars([], { width: 54 })).toBe('No funnel steps.');
 
     for (const line of renderFunnelBars([
@@ -1001,7 +1012,7 @@ describe('cli-viz primitives', () => {
     ], { width: 54 });
     expect(hugeFunnelAtBoundary).toContain('123,456,789,012,345 / 987,654,321,098,765');
     expect(hugeFunnelAtBoundary).not.toContain('~');
-    expect(renderFunnelBars([{ label: 'Zero baseline', count: 10, denominator: 0 }], { width: 54 })).toContain('10 / 0 (0%)');
+    expect(renderFunnelBars([{ label: 'Zero baseline', count: 10, denominator: 0 }], { width: 54 })).toContain('100%');
   });
 
   it('renders retention heatmap jagged cohorts, missing periods, and narrow fallback', () => {

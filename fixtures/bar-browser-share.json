@@ -1,0 +1,11 @@
+{
+  "chart": "bar",
+  "title": "Browser share",
+  "rows": [
+    { "label": "Chrome", "value": 6240 },
+    { "label": "Safari", "value": 3110 },
+    { "label": "Firefox", "value": 1280 },
+    { "label": "Edge", "value": 920 },
+    { "label": "Other", "value": 340 }
+  ]
+}

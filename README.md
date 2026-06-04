@@ -26,6 +26,39 @@ npm install @staub/agentviz
 - Keep output readable inside narrow terminals and chat transcripts.
 - Avoid browser screenshots when a text report is enough.
 
+## Beautiful charts inside your CLI
+
+agentviz is a terminal-chart **design system**, not just a plotter: charts come
+out beautiful and legible without the caller tuning anything. Every kind draws
+from one shared set of components, so the whole output reads as a single product.
+
+Funnel — before vs after:
+
+![funnel before](docs/screenshots/funnel-before.png)
+![funnel after](docs/screenshots/funnel-after.png)
+
+Bar — before vs after:
+
+![bar before](docs/screenshots/bar-before.png)
+![bar after](docs/screenshots/bar-after.png)
+
+How it is built (two layers, inspired by visx's composable primitives and
+Tremor's beautiful-by-default assembly):
+
+- **`cli-viz/theme.ts` — primitives.** A color/degrade layer (truecolor 24-bit
+  on a TTY or under `FORCE_COLOR`, clean monochrome Unicode when piped, off under
+  `NO_COLOR`), one canonical blue ramp shared across kinds, a coherent categorical
+  palette, and the glyph sets (eighth blocks `▏▎▍▌▋▊▉█` for sub-cell-precise bars,
+  box drawing for chrome, shades for tracks/heat).
+- **`cli-viz/components.ts` — composable chrome.** `panel` (rounded border with a
+  colored title in the top edge), `legend`, `swatch`, `colorLabel`, `meter`, and
+  `meterTable`. Charts assemble these with sensible defaults, so the common case
+  is one call and comes out beautiful with zero tuning.
+
+Color is decided once, at the edge: a terminal gets truecolor; a pipe or a
+captured transcript gets the same layout in clean monochrome Unicode. Same
+geometry either way.
+
 ## CLI
 
 Pass a chart type and a JSON file, or pipe JSON through stdin.
