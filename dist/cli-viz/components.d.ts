@@ -12,6 +12,26 @@ export declare function padStart(ctx: RenderCtx, value: string, width: number): 
 export declare function colorLabel(ctx: RenderCtx, text: string, color: RGB): string;
 /** A filled swatch glyph in the given color (●), or a mono bullet. */
 export declare function swatch(ctx: RenderCtx, color: RGB): string;
+export interface DeltaOptions {
+    /** Which direction reads as "good" (green). Default 'up'. */
+    goodDirection?: 'up' | 'down';
+    /** Render the magnitude as a signed number instead of a percentage. */
+    as?: 'percent' | 'number';
+}
+/**
+ * A period-over-period delta indicator: `▲ 12%` / `▼ 5%` / `→ 0%`, tinted green
+ * when the move is good and red when bad (mono: arrow + magnitude, no color).
+ * `change` is the signed change — a ratio (0.12 = +12%) by default, or a raw
+ * amount when `as: 'number'`. Non-finite change (e.g. divide-by-zero) → `n/a`.
+ * This is the shared green-up / red-down pattern first used in the waterfall.
+ */
+export declare function deltaBadge(ctx: RenderCtx, change: number, opts?: DeltaOptions): string;
+/**
+ * A bare inline sparkline (no label / endpoints) for embedding in a tile or row.
+ * Color mode tints each glyph along the ramp by its height; mono is plain
+ * block glyphs. Returns '' when there is no finite data.
+ */
+export declare function inlineSparkline(ctx: RenderCtx, values: number[], color?: RGB): string;
 export declare function meter(ctx: RenderCtx, fraction: number, cells: number, color: RGB): string;
 export interface MeterRow {
     label: string;

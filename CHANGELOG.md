@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+- feat(growth): reusable **delta indicator** + **inline sparkline** primitives —
+  the first of the growth-viz building blocks. `deltaBadge(ctx, change, opts)`
+  renders a period-over-period delta as `▲ 12%` / `▼ 5%` / `→ 0%`, tinted green
+  when the move is good and red when bad (with `goodDirection: 'up' | 'down'` so
+  a falling churn/latency reads green), or a signed amount via `as: 'number'`;
+  non-finite change → `n/a`. `inlineSparkline(ctx, values)` draws a bare
+  ramp-tinted sparkline for embedding in a tile or row. Both degrade to clean
+  monochrome. This is the shared green-up / red-down pattern first used in the
+  waterfall, now factored out for KPI tiles, metric rows, and annotations.
+  Exported from the package root (`deltaBadge`, `inlineSparkline`, `DeltaOptions`,
+  and `makeRenderCtx`). Demo in `docs/screenshots/delta-indicators.png`.
+
 - feat(stacked, grouped, waterfall): rebuilt the bar-family charts on the shared
   component system so they read as one product with bar/funnel/line/retention.
   All three now render inside a titled `panel` with truecolor and a clean

@@ -7,7 +7,8 @@
 // These build on the pure primitives in ./theme.ts and the width-aware string
 // helpers passed in from index.ts (so there is exactly one display-width
 // implementation in the codebase).
-import { BOX, FULL_BLOCK, THEME, bold, dim, fg, barGlyphs, } from './theme.js';
+import { BOX, FULL_BLOCK, THEME, bold, dim, fg, barGlyphs, ramp, } from './theme.js';
+const SPARK_GLYPHS = ['▁', '▂', '▃', '▄', '▅', '▆', '▇', '█'];
 // ---------------------------------------------------------------------------
 // Low-level: pad a (possibly colored) cell to a display width.
 // ---------------------------------------------------------------------------
@@ -32,6 +33,56 @@ export function colorLabel(ctx, text, color) {
 /** A filled swatch glyph in the given color (●), or a mono bullet. */
 export function swatch(ctx, color) {
     return ctx.color ? fg(color, '●') : '•'; // ● / •
+}
+/**
+ * A period-over-period delta indicator: `▲ 12%` / `▼ 5%` / `→ 0%`, tinted green
+ * when the move is good and red when bad (mono: arrow + magnitude, no color).
+ * `change` is the signed change — a ratio (0.12 = +12%) by default, or a raw
+ * amount when `as: 'number'`. Non-finite change (e.g. divide-by-zero) → `n/a`.
+ * This is the shared green-up / red-down pattern first used in the waterfall.
+ */
+export function deltaBadge(ctx, change, opts = {}) {
+    if (!Number.isFinite(change))
+        return ctx.color ? dim('n/a') : 'n/a';
+    const arrow = change > 0 ? '▲' : change < 0 ? '▼' : '→';
+    const magnitude = opts.as === 'number'
+        ? new Intl.NumberFormat('en-US', { maximumFractionDigits: 1 }).format(Math.abs(change))
+        : new Intl.NumberFormat('en-US', {
+            style: 'percent',
+            maximumFractionDigits: Math.abs(change) > 0 && Math.abs(change) < 0.1 ? 1 : 0,
+        }).format(Math.abs(change));
+    const text = `${arrow} ${magnitude}`;
+    if (!ctx.color)
+        return text;
+    if (change === 0)
+        return dim(text);
+    const good = (opts.goodDirection ?? 'up') === 'up' ? change > 0 : change < 0;
+    return fg(good ? THEME.positive : THEME.negative, text);
+}
+/**
+ * A bare inline sparkline (no label / endpoints) for embedding in a tile or row.
+ * Color mode tints each glyph along the ramp by its height; mono is plain
+ * block glyphs. Returns '' when there is no finite data.
+ */
+export function inlineSparkline(ctx, values, color) {
+    const finite = values.filter((value) => Number.isFinite(value));
+    if (finite.length === 0)
+        return '';
+    const min = Math.min(...finite);
+    const max = Math.max(...finite);
+    const glyphFor = (value) => {
+        const t = max === min ? 0.5 : (value - min) / (max - min);
+        const index = Math.round(t * (SPARK_GLYPHS.length - 1));
+        return { glyph: SPARK_GLYPHS[Math.max(0, Math.min(SPARK_GLYPHS.length - 1, index))], t };
+    };
+    if (!ctx.color)
+        return finite.map((value) => glyphFor(value).glyph).join('');
+    return finite
+        .map((value) => {
+        const { glyph, t } = glyphFor(value);
+        return fg(color ?? ramp(1 - t), glyph);
+    })
+        .join('');
 }
 // ---------------------------------------------------------------------------
 // Meter — a sub-cell-precise horizontal bar with a faint track, colored fill.

@@ -2,6 +2,9 @@ import { describe, expect, it } from 'vitest';
 import {
   barGlyphs,
   categorical,
+  deltaBadge,
+  inlineSparkline,
+  makeRenderCtx,
   ramp,
   rampShade,
   renderBarChart,
@@ -219,5 +222,36 @@ describe('design system — retention heatmap', () => {
     expect(out).not.toContain(ESC);
     expect(out).toMatch(/[░▒▓█]/);
     expect(out).toContain('·'); // C2 has no W2 cell
+  });
+});
+
+describe('design system — growth primitives (delta + sparkline)', () => {
+  const color = makeRenderCtx({ color: 'always' });
+  const mono = makeRenderCtx({ color: 'never' });
+  const green = '[38;2;45;198;130m';
+  const red = '[38;2;240;80;110m';
+
+  it('deltaBadge: arrows + magnitude, mono is plain', () => {
+    expect(deltaBadge(mono, 0.12)).toBe('▲ 12%');
+    expect(deltaBadge(mono, -0.05)).toBe('▼ 5%');
+    expect(deltaBadge(mono, 0)).toBe('→ 0%');
+    expect(deltaBadge(mono, 85000, { as: 'number' })).toBe('▲ 85,000');
+    expect(deltaBadge(mono, Infinity)).toBe('n/a'); // divide-by-zero etc
+  });
+
+  it('deltaBadge: green when good, red when bad, honoring goodDirection', () => {
+    expect(deltaBadge(color, 0.12)).toContain(green); // up is good by default
+    expect(deltaBadge(color, -0.05)).toContain(red);
+    // For churn/latency, down is good → a decrease is green.
+    expect(deltaBadge(color, -0.05, { goodDirection: 'down' })).toContain(green);
+    expect(deltaBadge(color, 0.05, { goodDirection: 'down' })).toContain(red);
+  });
+
+  it('inlineSparkline: block glyphs, mono carries no ANSI', () => {
+    expect(inlineSparkline(mono, [1, 3, 2, 5, 4, 8])).toMatch(/^[▁▂▃▄▅▆▇█]+$/);
+    expect(inlineSparkline(mono, [])).toBe('');
+    const colored = inlineSparkline(color, [1, 3, 2, 5, 4, 8]);
+    expect(colored).toContain(ESC);
+    expect([...stripAnsi(colored)].length).toBe(6);
   });
 });

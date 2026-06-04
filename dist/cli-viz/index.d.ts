@@ -5,7 +5,8 @@ export { renderWaterfallChart, type WaterfallChartOptions, type WaterfallStep, t
 export { renderBigNumber, type BigNumberColorMode, type BigNumberFormat, type BigNumberOptions, type BigNumberUnit, } from './bignumber.js';
 export { BrailleCanvas } from './braille.js';
 export * from './theme.js';
-export { colorLabel, legend, meter, meterTable, panel, swatch, type LegendItem, type MeterRow, type MeterTableSpec, type PanelOptions, type RenderCtx, } from './components.js';
+export { colorLabel, deltaBadge, inlineSparkline, legend, meter, meterTable, panel, swatch, type DeltaOptions, type LegendItem, type MeterRow, type MeterTableSpec, type PanelOptions, type RenderCtx, } from './components.js';
+export { makeRenderCtx } from './render-context.js';
 export type CliVizColorMode = 'never' | 'auto' | 'always';
 export type CliVizAlign = 'left' | 'right';
 export type CliVizFormat = 'text' | 'number' | 'percent' | 'ratio';

@@ -17,7 +17,8 @@ export { BrailleCanvas } from './braille.js';
 import { THEME, categorical, dim, fg, fgBg, heat, ramp, rampShade, resolveColor } from './theme.js';
 import { meterTable, padEnd, padStart, panel } from './components.js';
 export * from './theme.js';
-export { colorLabel, legend, meter, meterTable, panel, swatch, } from './components.js';
+export { colorLabel, deltaBadge, inlineSparkline, legend, meter, meterTable, panel, swatch, } from './components.js';
+export { makeRenderCtx } from './render-context.js';
 export function renderSparkline(values, options = {}) {
     const width = clampWidth(options.width);
     const label = sanitizeText(options.label ?? 'Sparkline');
