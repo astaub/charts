@@ -12,6 +12,7 @@ export interface ScatterQuadrantLabels {
 }
 export interface ScatterPlotOptions {
     width?: number;
+    title?: string;
     xLabel?: string;
     yLabel?: string;
     xFormat?: ScatterValueFormat;
@@ -20,5 +21,8 @@ export interface ScatterPlotOptions {
     yThreshold?: number;
     quadrantLabels?: ScatterQuadrantLabels;
     includeTable?: boolean;
+    color?: 'never' | 'auto' | 'always';
+    isTTY?: boolean;
+    env?: Record<string, string | undefined>;
 }
 export declare function renderScatterPlot(points: ScatterPlotPoint[], options?: ScatterPlotOptions): string;

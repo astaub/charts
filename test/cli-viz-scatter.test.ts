@@ -27,25 +27,27 @@ describe('cli-viz scatter plot primitive', () => {
     });
 
     expect(output).toMatchInlineSnapshot(`
-      "Activation rate
-      49% |                                     |
-          |                                     |                              1
-          |     2                               |
-          |                                     |
-          |-------------------------------------+------------------------------------
-      40% |                                     |
-          |                                     |
-          |                                     |
-          |                                     |     3
-      30% |                                     |
-          +--------------------------------------------------------------------------
-           96.7                            Qualified                            159.3
-
-      ID  Label             Qualified  Activation rate  Quadrant
-      --  ----------------  ---------  ---------------  ---------------------
-      1   bd_referral             155              48%  scale now
-      2   founder_referral        101              46%  high-converting niche
-      3   organic                 134              31%  volume leak"
+      "╭─ Activation rate vs Qualified ───────────────────────────────────────────────╮
+      │ Activation rate                                                              │
+      │ 49% |                                   |                                    │
+      │     |                                   |                            1       │
+      │     |     2                             |                                    │
+      │     |                                   |                                    │
+      │     |-----------------------------------+----------------------------------  │
+      │ 40% |                                   |                                    │
+      │     |                                   |                                    │
+      │     |                                   |                                    │
+      │     |                                   |     3                              │
+      │ 30% |                                   |                                    │
+      │     +----------------------------------------------------------------------  │
+      │      96.7                          Qualified                          159.3  │
+      │                                                                              │
+      │ ID  Label             Qualified  Activation rate  Quadrant                   │
+      │ --  ----------------  ---------  ---------------  ---------------------      │
+      │ 1   bd_referral             155              48%  scale now                  │
+      │ 2   founder_referral        101              46%  high-converting niche      │
+      │ 3   organic                 134              31%  volume leak                │
+      ╰──────────────────────────────────────────────────────────────────────────────╯"
     `);
     expect(output).not.toMatch(ANSI_PATTERN);
     expect(output).toContain('155');

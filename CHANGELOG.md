@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+- feat(scatter): rebuilt the quadrant scatter plot on the shared component
+  system — a titled `panel`, **points colored by quadrant** (top-right
+  high/high = winners green, bottom-left low/low = laggards red, mixed = accent),
+  and an **amber threshold cross** (consistent with goal/reference lines). Dim
+  axis frame + coordinate table; clean monochrome degrade. Adds `title`/`color`
+  options; joined the paneled set. New `scatter-quadrant` fixture + alignment
+  case. Before/after freeze shots in `docs/screenshots/`. This was the last
+  unconverted kind — every chart now reads as one product.
+
 - feat(bar): **goal / reference lines.** `renderBarChart` now accepts `goal`
   (+ `goalLabel`) and draws a dashed vertical threshold line (`┊`, warn accent)
   across every bar at the goal's value, with a labeled marker above — the

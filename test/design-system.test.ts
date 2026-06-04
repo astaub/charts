@@ -13,6 +13,7 @@ import {
   renderGroupedBarChart,
   renderLineChart,
   renderRetentionHeatmap,
+  renderScatterPlot,
   renderSparkline,
   renderStackedBarChart,
   renderWaterfallChart,
@@ -145,6 +146,9 @@ describe('design system — panel right-border alignment (no ragged edge)', () =
     ], { width, title: 't', color: 'always' })],
     ['bignumber', renderBigNumber(1234, { width, label: 'Signups', previous: 1102, sparkline: [800, 1102, 1050, 1234], color: 'always' })],
     ['bar-goal', renderBarChart([{ label: 'A', value: 9 }, { label: 'B', value: 3 }], { width, title: 't', goal: 6, goalLabel: 'target', color: 'always' })],
+    ['scatter', renderScatterPlot([
+      { label: 'A', x: 0.6, y: 0.2 }, { label: 'B', x: 0.3, y: -0.1 }, { label: 'C', x: 0.5, y: 0.05 },
+    ], { width, title: 't', xThreshold: 0.4, yThreshold: 0.1, color: 'always' })],
   ];
 
   for (const [name, out] of cases) {

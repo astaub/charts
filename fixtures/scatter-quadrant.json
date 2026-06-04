@@ -1,0 +1,18 @@
+{
+  "chart": "scatter",
+  "title": "Engagement vs growth",
+  "options": {
+    "xLabel": "Weekly active %", "yLabel": "MoM growth %",
+    "xFormat": "percent", "yFormat": "percent",
+    "xThreshold": 0.4, "yThreshold": 0.1
+  },
+  "points": [
+    { "label": "Onboarding", "x": 0.62, "y": 0.22 },
+    { "label": "Dashboards", "x": 0.55, "y": 0.14 },
+    { "label": "Reports", "x": 0.48, "y": -0.03 },
+    { "label": "Integrations", "x": 0.31, "y": 0.18 },
+    { "label": "Mobile", "x": 0.27, "y": 0.06 },
+    { "label": "Admin", "x": 0.21, "y": -0.08 },
+    { "label": "Billing", "x": 0.44, "y": 0.02 }
+  ]
+}

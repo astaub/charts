@@ -1,9 +1,23 @@
+import { THEME, dim, fg } from './theme.js';
+import { panel } from './components.js';
+import { makeRenderCtx } from './render-context.js';
 const DEFAULT_WIDTH = 80;
 const NARROW_WIDTH = 54;
 const MIN_WIDTH = 32;
 const MAX_GRID_POINTS = 35;
 const ANSI_PATTERN = /\u001B\[[0-?]*[ -/]*[@-~]/g;
 const AXIS_CHARS = new Set(['|', '-', '+']);
+// Quadrant analysis colors: top-right (high/high) reads as winners (green),
+// bottom-left (low/low) as laggards (red), the mixed quadrants stay accent.
+function quadrantColor(x, y, xThreshold, yThreshold) {
+    const right = x >= xThreshold;
+    const top = y >= yThreshold;
+    if (right && top)
+        return THEME.positive;
+    if (!right && !top)
+        return THEME.negative;
+    return THEME.accent;
+}
 export function renderScatterPlot(points, options = {}) {
     const width = clampWidth(options.width);
     const cleanPoints = points
@@ -27,13 +41,17 @@ export function renderScatterPlot(points, options = {}) {
     if (width < NARROW_WIDTH || cleanPoints.length > MAX_GRID_POINTS) {
         return renderScatterBlocks(cleanPoints, renderContext);
     }
+    const ctx = makeRenderCtx(options);
+    const contentWidth = width - 4; // inside the panel border + padding
     const xRange = expandedRange(cleanPoints.map((point) => point.x), xThreshold, xFormat);
     const yRange = expandedRange(cleanPoints.map((point) => point.y), yThreshold, yFormat);
     const yTicks = [yRange.max, midpoint(yRange.min, yRange.max), yRange.min];
     const yTickWidth = Math.max(...yTicks.map((tick) => visualWidth(formatValue(tick, yFormat))));
-    const plotWidth = Math.max(20, width - yTickWidth - 3);
+    const plotWidth = Math.max(20, contentWidth - yTickWidth - 3);
     const plotHeight = width >= 72 ? 10 : 8;
     const grid = makeGrid(plotHeight, plotWidth, ' ');
+    // Parallel color grid: each plotted point cell carries its quadrant color.
+    const colorGrid = Array.from({ length: plotHeight }, () => Array.from({ length: plotWidth }, () => null));
     const xReferenceColumn = valueToColumn(xThreshold, xRange.min, xRange.max, plotWidth);
     const yReferenceRow = valueToRow(yThreshold, yRange.min, yRange.max, plotHeight);
     for (let row = 0; row < plotHeight; row += 1) {
@@ -48,20 +66,51 @@ export function renderScatterPlot(points, options = {}) {
         const column = valueToColumn(point.x, xRange.min, xRange.max, plotWidth);
         const current = grid[row][column] ?? ' ';
         grid[row][column] = current.trim() && !AXIS_CHARS.has(current) ? '*' : point.id;
+        colorGrid[row][column] = quadrantColor(point.x, point.y, xThreshold, yThreshold);
     }
-    const lines = [fitLine(yLabel, width)];
+    const dimText = (text) => (ctx.color ? dim(text) : text);
+    // Color a plotted grid row: threshold cross in the warn accent (a reference
+    // line, like a goal), points in their quadrant color, collisions muted.
+    const colorRow = (row) => {
+        const cells = grid[row];
+        let out = '';
+        for (let col = 0; col < cells.length; col += 1) {
+            const ch = cells[col] ?? ' ';
+            if (ch === ' ') {
+                out += ' ';
+                continue;
+            }
+            if (!ctx.color) {
+                out += ch;
+                continue;
+            }
+            if (AXIS_CHARS.has(ch))
+                out += fg(THEME.warn, ch);
+            else if (ch === '*')
+                out += fg(THEME.muted, ch);
+            else
+                out += fg(colorGrid[row][col] ?? THEME.accent, ch);
+        }
+        return out;
+    };
+    const body = [dimText(fitLine(yLabel, contentWidth))];
     for (let row = 0; row < plotHeight; row += 1) {
         const tick = tickForRow(row, plotHeight, yTicks, yFormat);
-        lines.push(`${padCell(tick, yTickWidth, 'right')} |${grid[row].join('')}`);
+        body.push(`${dimText(padCell(tick, yTickWidth, 'right'))} ${dimText('|')}${colorRow(row)}`);
     }
-    const bottomAxis = `${repeat(' ', yTickWidth)} +${repeat('-', plotWidth)}`;
-    lines.push(fitLine(bottomAxis, width));
-    lines.push(fitLine(`${repeat(' ', yTickWidth + 2)}${formatValue(xRange.min, xFormat)}${centerAxisLabel(xLabel, plotWidth, formatValue(xRange.min, xFormat), formatValue(xRange.max, xFormat))}${formatValue(xRange.max, xFormat)}`, width));
+    body.push(dimText(`${repeat(' ', yTickWidth)} +${repeat('-', plotWidth)}`));
+    body.push(dimText(`${repeat(' ', yTickWidth + 2)}${formatValue(xRange.min, xFormat)}${centerAxisLabel(xLabel, plotWidth, formatValue(xRange.min, xFormat), formatValue(xRange.max, xFormat))}${formatValue(xRange.max, xFormat)}`));
     if (includeTable) {
-        lines.push('');
-        lines.push(...renderCoordinateTable(cleanPoints, renderContext));
+        body.push('');
+        body.push(...renderCoordinateTable(cleanPoints, { ...renderContext, width: contentWidth }));
     }
-    return lines.map((line) => fitLine(line, width).trimEnd()).join('\n');
+    const title = sanitizeText(options.title ?? `${yLabel} vs ${xLabel}`);
+    return panel(ctx, {
+        body,
+        width,
+        accent: THEME.accent,
+        ...(title ? { title } : {}),
+    }).join('\n');
 }
 function renderScatterBlocks(points, context) {
     return points

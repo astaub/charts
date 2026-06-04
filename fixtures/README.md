@@ -30,6 +30,7 @@ FORCE_COLOR=1 bun src/cli.ts funnel fixtures/funnel-checkout.json > out.ans
 | `grouped-engagement.json` | grouped | grouped columns per week (3 series) |
 | `waterfall-mrr-bridge.json` | waterfall | MRR bridge (gains green / drops red) |
 | `bignumber-signups.json` | bignumber | KPI tile (value · delta · sparkline) |
+| `scatter-quadrant.json` | scatter | quadrant analysis (winners green / laggards red) |
 
 More kinds (line, sparkline, heatmap/retention, scatter, stacked, grouped,
 waterfall, dashboards) land alongside the renderers that adopt the shared
