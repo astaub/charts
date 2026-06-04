@@ -42,7 +42,7 @@ export {
 } from './bignumber.js';
 import { BrailleCanvas } from './braille.js';
 export { BrailleCanvas } from './braille.js';
-import { THEME, rampShade, resolveColor, type ColorMode } from './theme.js';
+import { THEME, categorical, dim, fg, ramp, rampShade, resolveColor, type ColorMode, type RGB } from './theme.js';
 import { meterTable, panel, type MeterRow, type RenderCtx } from './components.js';
 export * from './theme.js';
 export {
@@ -143,6 +143,8 @@ export interface LineChartOptions extends CliVizOptions {
   valueFormat?: LineChartValueFormat;
   /** Y-axis unit affixes applied to axis labels (ignored when valueFormat='percent'). */
   unit?: LineChartUnit;
+  /** Fill the region under each series (braille body only). Implies smooth braille. */
+  area?: boolean;
 }
 
 export type FilterValue = string | number | boolean | null | Array<string | number | boolean | null>;
@@ -221,9 +223,21 @@ export function renderSparkline(values: number[], options: SparklineOptions = {}
   const sampled = sampleSeries(finiteValues, available);
   const min = Math.min(...finiteValues);
   const max = Math.max(...finiteValues);
-  const sparkline = sampled.map((value) => sparkChar(value, min, max)).join('');
 
-  return fitLine(`${prefix}${sparkline}${suffix}`, width);
+  // Mono is byte-identical to the historical output (tests pin it). In color
+  // mode each glyph is tinted along the canonical ramp by its height, and the
+  // start→end suffix is dimmed, so the sparkline reads as part of the system.
+  if (!resolveColor({ color: options.color as ColorMode | undefined, isTTY: options.isTTY, env: options.env })) {
+    const sparkline = sampled.map((value) => sparkChar(value, min, max)).join('');
+    return fitLine(`${prefix}${sparkline}${suffix}`, width);
+  }
+  const sparkline = sampled
+    .map((value) => {
+      const t = max === min ? 0.5 : (value - min) / (max - min);
+      return fg(ramp(1 - t), sparkChar(value, min, max));
+    })
+    .join('');
+  return `${fg(THEME.accent, prefix)}${sparkline}${dim(suffix)}`;
 }
 
 export function renderBarChart(rows: BarChartDatum[], options: BarChartOptions = {}): string {
@@ -366,6 +380,10 @@ export function renderLineChart(series: LineChartSeries[], options: LineChartOpt
     return lines.map((line) => fitLine(line, width).trimEnd()).join('\n');
   }
 
+  const ctx = makeRenderCtx(options);
+  // Everything below lives inside a panel, so the drawable content width is the
+  // outer width minus the border + one column of padding on each side.
+  const contentWidth = width - 4;
   const values = cleanSeries.flatMap((entry) => buckets.map((bucket) => lineChartValue(entry, bucket)).filter((value): value is number => value !== undefined));
   const goal = typeof options.goal === 'number' && Number.isFinite(options.goal) ? options.goal : undefined;
   const rangeValues = goal === undefined ? values : [...values, goal];
@@ -375,130 +393,215 @@ export function renderLineChart(series: LineChartSeries[], options: LineChartOpt
   const axisTicks = lineChartAxisTicks(minValue, maxValue, chartHeight);
   const axisLabels = axisTicks.map((value) => formatLineChartAxisLabel(value, minValue, maxValue, options));
   const labelWidth = Math.max(5, longest(axisLabels));
-  const plotWidth = Math.min(width - labelWidth - 3, Math.max(12, buckets.length * 16));
+  const plotWidth = Math.min(contentWidth - labelWidth - 3, Math.max(12, buckets.length * 16));
   const xPositions = lineChartXPositions(buckets.length, plotWidth);
+  const seriesColors = cleanSeries.map((_, index) => categorical(index));
+  const dimText = (text: string) => (ctx.color ? dim(text) : text);
+  const axisRow = (label: string, plot: string) =>
+    `${dimText(padCell(label, labelWidth, 'right'))} ${dimText('|')} ${plot}`;
 
-  // Braille mode: render the plot body at 2×4 sub-cell resolution for smooth,
-  // dense curves. Axis, x-labels, legend, and footer are assembled the same way
-  // as the default renderer. The goal degrades to a legend annotation, and
-  // vlines/shades degrade to compact marks — none are drawn into the braille
-  // body (a dot row would be indistinguishable from a series).
-  if ((options.lineStyle ?? 'linear') === 'braille') {
-    return renderBrailleLineChart({
-      cleanSeries,
-      buckets,
-      xPositions,
-      plotWidth,
-      chartHeight,
-      labelWidth,
-      axisLabels,
-      minValue,
-      maxValue,
-      goal,
-      width,
-      options,
-    });
-  }
+  // Default stays linear so vlines/shades/goal draw inline (braille can't host
+  // them legibly). `lineStyle: 'braille'` — or `area: true` — opts into the
+  // smooth 2×4 sub-cell body for dense curves.
+  const style: LineChartLineStyle = options.lineStyle ?? 'linear';
+  const useBraille = style === 'braille' || options.area === true;
 
-  const grid = Array.from({ length: chartHeight }, () => Array.from({ length: plotWidth }, () => ' '));
+  const bodyLines: string[] = [];
+  const resolvedVlines = useBraille ? [] : resolveLineChartVlines(options.vlines, buckets, xPositions);
+  const resolvedShades = useBraille ? [] : resolveLineChartShades(options.shades, buckets, xPositions);
 
-  // 1. Shades are drawn first so series and vlines paint on top.
-  const resolvedShades = resolveLineChartShades(options.shades, buckets, xPositions);
-  for (const shade of resolvedShades) {
-    drawShade(grid, shade.startX, shade.endX, shadePatternChar(shade.pattern));
-  }
+  if (useBraille) {
+    // Per-series braille canvases at 2×4 sub-cell resolution, composited into a
+    // single colored grid (last series wins a shared cell). `area` fills the
+    // region between the line and the zero baseline in the series color.
+    const glyph = Array.from({ length: chartHeight }, () => Array.from({ length: plotWidth }, () => ' '));
+    const owner = Array.from({ length: chartHeight }, () => Array.from({ length: plotWidth }, () => -1));
+    const baselineValue = Math.max(minValue, Math.min(maxValue, 0));
 
-  // 2. Vlines drawn before series so series markers win on collisions.
-  const resolvedVlines = resolveLineChartVlines(options.vlines, buckets, xPositions);
-  for (const vline of resolvedVlines) {
-    drawVline(grid, vline.x);
-  }
+    cleanSeries.forEach((entry, seriesIndex) => {
+      const canvas = new BrailleCanvas(plotWidth, chartHeight);
+      const dotHeight = canvas.dotHeight;
+      const toDotY = (value: number): number => {
+        if (maxValue === minValue) return Math.floor((dotHeight - 1) / 2);
+        const normalized = (value - minValue) / (maxValue - minValue);
+        return Math.max(0, Math.min(dotHeight - 1, Math.round((1 - normalized) * (dotHeight - 1))));
+      };
+      const baselineDotY = toDotY(baselineValue);
+      const plotted = buckets
+        .map((bucket, index) => {
+          const value = lineChartValue(entry, bucket);
+          if (value === undefined) return undefined;
+          return { x: (xPositions[index] ?? 0) * 2, y: toDotY(value) };
+        })
+        .filter((point): point is { x: number; y: number } => point !== undefined);
 
-  const lineStyle: LineChartLineStyle = options.lineStyle ?? 'linear';
-
-  cleanSeries.forEach((entry, seriesIndex) => {
-    const marker = lineChartMarker(seriesIndex);
-    const plotted = buckets
-      .map((bucket, index) => {
-        const value = lineChartValue(entry, bucket);
-        if (value === undefined) return undefined;
-        return {
-          x: xPositions[index] ?? 0,
-          y: lineChartY(value, minValue, maxValue, chartHeight),
-        };
-      })
-      .filter((point): point is { x: number; y: number } => point !== undefined);
-
-    if (lineStyle !== 'markers-only') {
+      if (plotted.length === 1 && plotted[0]) {
+        canvas.set(plotted[0].x, plotted[0].y);
+        if (options.area) fillBrailleColumn(canvas, plotted[0].x, plotted[0].y, baselineDotY);
+      }
       for (let index = 1; index < plotted.length; index += 1) {
-        if (lineStyle === 'step') {
-          drawStepSegment(grid, plotted[index - 1], plotted[index]);
-        } else {
-          drawLineSegment(grid, plotted[index - 1], plotted[index]);
+        const a = plotted[index - 1];
+        const b = plotted[index];
+        if (!a || !b) continue;
+        canvas.line(a.x, a.y, b.x, b.y);
+        if (options.area) {
+          const stepCount = Math.max(1, Math.abs(b.x - a.x));
+          for (let s = 0; s <= stepCount; s += 1) {
+            const x = Math.round(a.x + ((b.x - a.x) * s) / stepCount);
+            const y = Math.round(a.y + ((b.y - a.y) * s) / stepCount);
+            fillBrailleColumn(canvas, x, y, baselineDotY);
+          }
         }
       }
-    }
 
-    for (const point of plotted) {
-      plotChar(grid, point.x, point.y, marker);
-    }
-  });
+      const rows = canvas.toRows();
+      for (let cy = 0; cy < chartHeight; cy += 1) {
+        const rowChars = [...(rows[cy] ?? '')];
+        for (let cx = 0; cx < plotWidth; cx += 1) {
+          const ch = rowChars[cx];
+          if (ch && ch !== ' ') {
+            (glyph[cy] as string[])[cx] = ch;
+            (owner[cy] as number[])[cx] = seriesIndex;
+          }
+        }
+      }
+    });
 
-  // Goal line: a dashed horizontal reference drawn only on empty cells, so
-  // series lines and markers always win on a collision.
-  if (goal !== undefined) {
-    const goalRow = grid[lineChartY(goal, minValue, maxValue, chartHeight)];
-    if (goalRow) {
-      for (let x = 0; x < goalRow.length; x += 1) {
-        if (goalRow[x] === ' ') goalRow[x] = '╌';
+    for (let cy = 0; cy < chartHeight; cy += 1) {
+      let plot = '';
+      for (let cx = 0; cx < plotWidth; cx += 1) {
+        const ch = (glyph[cy] as string[])[cx] ?? ' ';
+        if (ch === ' ') {
+          plot += ' ';
+          continue;
+        }
+        const color = seriesColors[(owner[cy] as number[])[cx] ?? 0] ?? THEME.accent;
+        plot += ctx.color ? fg(color, ch) : ch;
+      }
+      bodyLines.push(axisRow(axisLabels[cy] ?? '0', plot.replace(/\s+$/u, '')));
+    }
+  } else {
+    const grid = Array.from({ length: chartHeight }, () => Array.from({ length: plotWidth }, () => ' '));
+    const owner = Array.from({ length: chartHeight }, () => Array.from({ length: plotWidth }, () => -1));
+
+    for (const shade of resolvedShades) drawShade(grid, shade.startX, shade.endX, shadePatternChar(shade.pattern));
+    for (const vline of resolvedVlines) drawVline(grid, vline.x);
+
+    cleanSeries.forEach((entry, seriesIndex) => {
+      const marker = lineChartMarker(seriesIndex);
+      const plotted = buckets
+        .map((bucket, index) => {
+          const value = lineChartValue(entry, bucket);
+          if (value === undefined) return undefined;
+          return { x: xPositions[index] ?? 0, y: lineChartY(value, minValue, maxValue, chartHeight) };
+        })
+        .filter((point): point is { x: number; y: number } => point !== undefined);
+
+      if (style !== 'markers-only') {
+        for (let index = 1; index < plotted.length; index += 1) {
+          if (style === 'step') drawStepSegment(grid, plotted[index - 1], plotted[index], owner, seriesIndex);
+          else drawLineSegment(grid, plotted[index - 1], plotted[index], owner, seriesIndex);
+        }
+      }
+      for (const point of plotted) plotChar(grid, point.x, point.y, marker, false, owner, seriesIndex);
+    });
+
+    let goalRowIndex = -1;
+    if (goal !== undefined) {
+      goalRowIndex = lineChartY(goal, minValue, maxValue, chartHeight);
+      const goalRow = grid[goalRowIndex];
+      if (goalRow) {
+        for (let x = 0; x < goalRow.length; x += 1) if (goalRow[x] === ' ') goalRow[x] = '╌';
       }
     }
+
+    const aboveLabels = renderVlineLabelLine(
+      resolvedVlines.filter((vline) => (vline.position ?? 'above') === 'above'),
+      labelWidth,
+      plotWidth,
+    );
+    if (aboveLabels) bodyLines.push(aboveLabels);
+
+    for (let row = 0; row < chartHeight; row += 1) {
+      const cells = grid[row] ?? [];
+      const owners = owner[row] ?? [];
+      let plot = '';
+      for (let x = 0; x < cells.length; x += 1) {
+        const ch = cells[x] ?? ' ';
+        if (ch === ' ') { plot += ' '; continue; }
+        if (!ctx.color) { plot += ch; continue; }
+        const seriesOwner = owners[x] ?? -1;
+        if (seriesOwner >= 0) plot += fg(seriesColors[seriesOwner] ?? THEME.accent, ch);
+        else if (ch === '╌') plot += dim(fg(THEME.warn, ch));
+        else plot += dim(ch); // shade / vline background
+      }
+      bodyLines.push(axisRow(axisLabels[row] ?? '0', plot.replace(/\s+$/u, '')));
+    }
   }
 
-  const lines: string[] = [];
-
-  // Top vline labels (position: 'above', or default).
-  const aboveLabels = renderVlineLabelLine(
-    resolvedVlines.filter((vline) => (vline.position ?? 'above') === 'above'),
-    labelWidth,
-    plotWidth,
-  );
-  if (aboveLabels) lines.push(aboveLabels);
-
-  for (let row = 0; row < chartHeight; row += 1) {
-    lines.push(`${padCell(axisLabels[row] ?? '0', labelWidth, 'right')} | ${grid[row]?.join('').trimEnd() ?? ''}`);
-  }
-  lines.push(`${repeat(' ', labelWidth)} + ${repeat('-', Math.max(1, plotWidth))}`);
+  bodyLines.push(`${dimText(repeat(' ', labelWidth))} ${dimText('+')} ${dimText(repeat('-', Math.max(1, plotWidth)))}`);
 
   const xAxisStrategy = options.xAxisLabels ?? 'auto';
-  lines.push(...lineChartBucketLabelLines(buckets, xPositions, labelWidth, plotWidth, xAxisStrategy));
+  bodyLines.push(...lineChartBucketLabelLines(buckets, xPositions, labelWidth, plotWidth, xAxisStrategy).map(dimText));
 
-  // Below vline labels.
   const belowLabels = renderVlineLabelLine(
     resolvedVlines.filter((vline) => vline.position === 'below'),
     labelWidth,
     plotWidth,
   );
-  if (belowLabels) lines.push(belowLabels);
+  if (belowLabels) bodyLines.push(belowLabels);
 
-  lines.push(...lineChartLegendLines(cleanSeries, width));
+  // Legend: colored swatches keyed to each series.
+  bodyLines.push('');
+  bodyLines.push(...lineChartLegendLines(ctx, cleanSeries, seriesColors, contentWidth));
 
-  // Goal legend.
-  if (goal !== undefined) {
-    lines.push(...goalLegendLine(goal, options, width));
-  }
+  if (goal !== undefined) bodyLines.push(...goalLegendLine(goal, options, contentWidth));
 
-  // Shade legend.
-  const shadeLegendLines = renderShadeLegendLines(options.shades, resolvedShades, width);
-  if (shadeLegendLines.length > 0) lines.push(...shadeLegendLines);
+  const shadeLegendLines = renderShadeLegendLines(options.shades, resolvedShades, contentWidth);
+  if (shadeLegendLines.length > 0) bodyLines.push(...shadeLegendLines);
 
-  // Footer.
+  // Braille degrades vlines/shades to compact labelled marks (a dot row would be
+  // indistinguishable from a series); surface them so nothing is silently dropped.
+  if (useBraille) bodyLines.push(...lineAnnotationMarks(options, buckets, contentWidth));
+
   if (typeof options.footer === 'string' && options.footer.trim().length > 0) {
-    lines.push('');
-    lines.push(...wrapLine(options.footer, width));
+    bodyLines.push('');
+    bodyLines.push(...wrapLine(options.footer, contentWidth));
   }
 
-  return lines.map((line) => fitLine(line, width).trimEnd()).join('\n');
+  return panel(ctx, {
+    body: bodyLines,
+    width,
+    accent: THEME.accent,
+    ...(options.title ? { title: sanitizeText(options.title) } : {}),
+    ...(options.subtitle ? { subtitle: sanitizeText(options.subtitle) } : {}),
+  }).join('\n');
+}
+
+/** Fill braille dots in one column from `fromDotY` to the baseline (area fill). */
+function fillBrailleColumn(canvas: BrailleCanvas, dotX: number, fromDotY: number, baselineDotY: number): void {
+  const top = Math.min(fromDotY, baselineDotY);
+  const bottom = Math.max(fromDotY, baselineDotY);
+  for (let y = top; y <= bottom; y += 1) canvas.set(dotX, y);
+}
+
+/** Compact labelled marks for vlines/shades — used by the braille body and narrow widths. */
+function lineAnnotationMarks(options: LineChartOptions, buckets: string[], width: number): string[] {
+  const lines: string[] = [];
+  const markEntries = (options.vlines ?? [])
+    .filter((vline) => buckets.includes(vline.at) && sanitizeText(vline.label ?? '').length > 0)
+    .map((vline) => `${sanitizeText(vline.at)}=${sanitizeText(vline.label ?? '')}`);
+  if (markEntries.length > 0) lines.push(...wrapLine(`Marks: ${markEntries.join('  ')}`, width));
+  const shadeEntries = (options.shades ?? [])
+    .filter((shade) => buckets.includes(shade.from) && buckets.includes(shade.to) && sanitizeText(shade.label ?? '').length > 0)
+    .map((shade) => {
+      const fromFirst = buckets.indexOf(shade.from) <= buckets.indexOf(shade.to);
+      const start = fromFirst ? shade.from : shade.to;
+      const end = fromFirst ? shade.to : shade.from;
+      return `${sanitizeText(start)}-${sanitizeText(end)}=${sanitizeText(shade.label ?? '')}`;
+    });
+  if (shadeEntries.length > 0) lines.push(...wrapLine(`Shaded: ${shadeEntries.join('  ')}`, width));
+  return lines;
 }
 
 export function renderFilterSummary(filters: FilterDatum[], options: FilterSummaryOptions = {}): string {
@@ -838,93 +941,6 @@ function goalLegendLine(goal: number, options: LineChartOptions, width: number):
   return wrapLine(`${goalLabel(options)} ╌ ${formatGoalValue(goal, options)}`, width);
 }
 
-interface BrailleLineChartArgs {
-  cleanSeries: LineChartSeries[];
-  buckets: string[];
-  xPositions: number[];
-  plotWidth: number;
-  chartHeight: number;
-  labelWidth: number;
-  axisLabels: string[];
-  minValue: number;
-  maxValue: number;
-  goal: number | undefined;
-  width: number;
-  options: LineChartOptions;
-}
-
-function renderBrailleLineChart(args: BrailleLineChartArgs): string {
-  const {
-    cleanSeries, buckets, xPositions, plotWidth, chartHeight,
-    labelWidth, axisLabels, minValue, maxValue, goal, width, options,
-  } = args;
-
-  const canvas = new BrailleCanvas(plotWidth, chartHeight);
-  const dotHeight = canvas.dotHeight;
-  const toDotY = (value: number): number => {
-    if (maxValue === minValue) return Math.floor((dotHeight - 1) / 2);
-    const normalized = (value - minValue) / (maxValue - minValue);
-    return Math.max(0, Math.min(dotHeight - 1, Math.round((1 - normalized) * (dotHeight - 1))));
-  };
-
-  for (const entry of cleanSeries) {
-    const plotted = buckets
-      .map((bucket, index) => {
-        const value = lineChartValue(entry, bucket);
-        if (value === undefined) return undefined;
-        return { x: (xPositions[index] ?? 0) * 2, y: toDotY(value) };
-      })
-      .filter((point): point is { x: number; y: number } => point !== undefined);
-    if (plotted.length === 1) {
-      const only = plotted[0];
-      if (only) canvas.set(only.x, only.y);
-    }
-    for (let index = 1; index < plotted.length; index += 1) {
-      const a = plotted[index - 1];
-      const b = plotted[index];
-      if (a && b) canvas.line(a.x, a.y, b.x, b.y);
-    }
-  }
-
-  const bodyRows = canvas.toRows();
-  const lines: string[] = [];
-  for (let row = 0; row < chartHeight; row += 1) {
-    lines.push(`${padCell(axisLabels[row] ?? '0', labelWidth, 'right')} | ${(bodyRows[row] ?? '').trimEnd()}`);
-  }
-  lines.push(`${repeat(' ', labelWidth)} + ${repeat('-', Math.max(1, plotWidth))}`);
-  lines.push(...lineChartBucketLabelLines(buckets, xPositions, labelWidth, plotWidth, options.xAxisLabels ?? 'auto'));
-  lines.push(...lineChartLegendLines(cleanSeries, width));
-
-  if (goal !== undefined) {
-    lines.push(...goalLegendLine(goal, options, width));
-  }
-
-  // vlines/shades are not drawn into the braille body; surface them as compact
-  // labelled marks so nothing is silently dropped.
-  const markEntries = (options.vlines ?? [])
-    .filter((vline) => buckets.includes(vline.at) && sanitizeText(vline.label ?? '').length > 0)
-    .map((vline) => `${sanitizeText(vline.at)}=${sanitizeText(vline.label ?? '')}`);
-  if (markEntries.length > 0) lines.push(...wrapLine(`Marks: ${markEntries.join('  ')}`, width));
-  const shadeEntries = (options.shades ?? [])
-    .filter((shade) => buckets.includes(shade.from) && buckets.includes(shade.to) && sanitizeText(shade.label ?? '').length > 0)
-    .map((shade) => {
-      // Normalize endpoint order so the span always reads in bucket order,
-      // matching the narrow non-braille path (callers may pass from/to reversed).
-      const fromFirst = buckets.indexOf(shade.from) <= buckets.indexOf(shade.to);
-      const start = fromFirst ? shade.from : shade.to;
-      const end = fromFirst ? shade.to : shade.from;
-      return `${sanitizeText(start)}-${sanitizeText(end)}=${sanitizeText(shade.label ?? '')}`;
-    });
-  if (shadeEntries.length > 0) lines.push(...wrapLine(`Shaded: ${shadeEntries.join('  ')}`, width));
-
-  if (typeof options.footer === 'string' && options.footer.trim().length > 0) {
-    lines.push('');
-    lines.push(...wrapLine(options.footer, width));
-  }
-
-  return lines.map((line) => fitLine(line, width).trimEnd()).join('\n');
-}
-
 function lineChartXPositions(count: number, plotWidth: number): number[] {
   if (count <= 1) return [0];
   return Array.from({ length: count }, (_, index) => Math.round((index / (count - 1)) * (plotWidth - 1)));
@@ -940,13 +956,13 @@ function lineChartMarker(index: number): string {
   return ['●', '◆', '■', '▲', '✚', '○'][index % 6] ?? '●';
 }
 
-function drawStepSegment(grid: string[][], start: { x: number; y: number } | undefined, end: { x: number; y: number } | undefined): void {
+function drawStepSegment(grid: string[][], start: { x: number; y: number } | undefined, end: { x: number; y: number } | undefined, owner?: number[][], ownerIndex?: number): void {
   if (!start || !end) return;
   if (start.x === end.x) {
     // Vertical-only step: paint between the two markers (exclusive endpoints).
     const yStart = Math.min(start.y, end.y) + 1;
     const yEnd = Math.max(start.y, end.y) - 1;
-    for (let y = yStart; y <= yEnd; y += 1) plotChar(grid, start.x, y, '│', true);
+    for (let y = yStart; y <= yEnd; y += 1) plotChar(grid, start.x, y, '│', true, owner, ownerIndex);
     return;
   }
 
@@ -959,7 +975,7 @@ function drawStepSegment(grid: string[][], start: { x: number; y: number } | und
   // the right endpoint so the vertical riser has somewhere to land without
   // overpainting a marker.
   for (let x = xLeft + 1; x < xRight; x += 1) {
-    plotChar(grid, x, leftY, '─', true);
+    plotChar(grid, x, leftY, '─', true, owner, ownerIndex);
   }
 
   // Vertical transition at the right edge. Include the old y-level (the
@@ -972,12 +988,12 @@ function drawStepSegment(grid: string[][], start: { x: number; y: number } | und
     const yEnd = Math.max(leftY, rightY);
     for (let y = yStart; y <= yEnd; y += 1) {
       if (y === rightY) continue;
-      plotChar(grid, xRight, y, '│', true);
+      plotChar(grid, xRight, y, '│', true, owner, ownerIndex);
     }
   }
 }
 
-function drawLineSegment(grid: string[][], start: { x: number; y: number } | undefined, end: { x: number; y: number } | undefined): void {
+function drawLineSegment(grid: string[][], start: { x: number; y: number } | undefined, end: { x: number; y: number } | undefined, owner?: number[][], ownerIndex?: number): void {
   if (!start || !end) return;
   const dx = end.x - start.x;
   const dy = end.y - start.y;
@@ -988,20 +1004,24 @@ function drawLineSegment(grid: string[][], start: { x: number; y: number } | und
     const x = Math.round(start.x + (dx * step) / steps);
     const y = Math.round(start.y + (dy * step) / steps);
     const char = dy === 0 ? '─' : dy > 0 ? '╲' : '╱';
-    plotChar(grid, x, y, char, true);
+    plotChar(grid, x, y, char, true, owner, ownerIndex);
   }
 }
 
 const SHADE_OR_VLINE_CHARS = new Set(['│', '░', '▒', '·']);
 
-function plotChar(grid: string[][], x: number, y: number, char: string, lineOnly = false): void {
+function plotChar(grid: string[][], x: number, y: number, char: string, lineOnly = false, owner?: number[][], ownerIndex?: number): void {
   const row = grid[y];
   if (!row || x < 0 || x >= row.length) return;
+  const setOwner = () => {
+    if (owner && ownerIndex !== undefined) (owner[y] as number[])[x] = ownerIndex;
+  };
   const current = row[x] ?? ' ';
   if (current !== ' ' && current !== char) {
     // Shade fill and vline annotations are background; lines and markers paint over them cleanly.
     if (SHADE_OR_VLINE_CHARS.has(current)) {
       row[x] = char;
+      setOwner();
       return;
     }
     if (lineOnly) {
@@ -1010,9 +1030,11 @@ function plotChar(grid: string[][], x: number, y: number, char: string, lineOnly
       return;
     }
     row[x] = '*';
+    setOwner();
     return;
   }
   row[x] = char;
+  setOwner();
 }
 
 function lineChartBucketLabelLines(
@@ -1238,9 +1260,24 @@ function renderShadeLegendLines(
   return wrapLine(`Shaded: ${entries.join('  ')}`, width);
 }
 
-function lineChartLegendLines(series: Array<{ label: string }>, width: number): string[] {
-  const legend = series.map((entry, index) => `${lineChartMarker(index)} ${entry.label}`).join('  ');
-  return wrapLine(`Legend: ${legend}`, width);
+function lineChartLegendLines(
+  ctx: RenderCtx,
+  series: Array<{ label: string }>,
+  colors: RGB[],
+  width: number,
+): string[] {
+  // Mono path is byte-identical to the original ("Legend: ● a  ◆ b"). In color
+  // mode the marker + label for each series are tinted to the series color so
+  // the legend is a true color key.
+  if (!ctx.color) {
+    const legend = series.map((entry, index) => `${lineChartMarker(index)} ${entry.label}`).join('  ');
+    return wrapLine(`Legend: ${legend}`, width);
+  }
+  const entries = series.map((entry, index) => fg(colors[index] ?? THEME.accent, `${lineChartMarker(index)} ${entry.label}`));
+  const oneLine = `${dim('Legend:')} ${entries.join('  ')}`;
+  if (ctx.visualWidth(oneLine) <= width) return [oneLine];
+  // Too wide: one series per line, still keyed by color.
+  return [dim('Legend:'), ...entries];
 }
 
 function normalizeFilter(filter: FilterDatum): Required<Omit<FilterDatum, 'value'>> & { value?: FilterValue } {

@@ -23,6 +23,8 @@ FORCE_COLOR=1 bun src/cli.ts funnel fixtures/funnel-checkout.json > out.ans
 | `bar-browser-share.json` | bar | category breakdown (sessions by browser) |
 | `bar-traffic-sources.json` | bar | signups by acquisition channel |
 | `bar-revenue-by-plan.json` | bar | MRR by plan (includes a zero row) |
+| `line-weekly-active.json` | line | two-series trend (web vs mobile WAU) |
+| `line-latency.json` | line | single-series area chart (`options.area`) |
 
 More kinds (line, sparkline, heatmap/retention, scatter, stacked, grouped,
 waterfall, dashboards) land alongside the renderers that adopt the shared

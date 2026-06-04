@@ -1,0 +1,4 @@
+{"chart":"line","title":"Weekly active users","series":[
+  {"label":"Web","points":[{"label":"W1","value":4200},{"label":"W2","value":4810},{"label":"W3","value":5120},{"label":"W4","value":4980},{"label":"W5","value":5640},{"label":"W6","value":6210},{"label":"W7","value":6880},{"label":"W8","value":7540}]},
+  {"label":"Mobile","points":[{"label":"W1","value":1800},{"label":"W2","value":2300},{"label":"W3","value":3020},{"label":"W4","value":3640},{"label":"W5","value":4100},{"label":"W6","value":4720},{"label":"W7","value":5380},{"label":"W8","value":6010}]}
+]}

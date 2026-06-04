@@ -80,6 +80,8 @@ export interface LineChartOptions extends CliVizOptions {
     valueFormat?: LineChartValueFormat;
     /** Y-axis unit affixes applied to axis labels (ignored when valueFormat='percent'). */
     unit?: LineChartUnit;
+    /** Fill the region under each series (braille body only). Implies smooth braille. */
+    area?: boolean;
 }
 export type FilterValue = string | number | boolean | null | Array<string | number | boolean | null>;
 export interface FilterDatum {

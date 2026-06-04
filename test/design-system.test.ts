@@ -1,10 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import {
   barGlyphs,
+  categorical,
   ramp,
   rampShade,
   renderBarChart,
   renderFunnelBars,
+  renderLineChart,
+  renderSparkline,
   resolveCliColorMode,
   resolveColor,
   stripAnsi,
@@ -92,5 +95,50 @@ describe('design system — paneled charts', () => {
     const out = renderFunnelBars([{ label: 'Visited', count: 120 }, { label: 'Paid', count: 18 }], { width: 36 });
     expect(out).not.toContain('╭');
     expect(out).toContain('1. Visited');
+  });
+});
+
+describe('design system — line / sparkline', () => {
+  const series = [
+    { label: 'Web', points: [{ label: 'W1', value: 10 }, { label: 'W2', value: 30 }, { label: 'W3', value: 20 }] },
+    { label: 'Mobile', points: [{ label: 'W1', value: 5 }, { label: 'W2', value: 15 }, { label: 'W3', value: 25 }] },
+  ];
+
+  it('wide line chart renders inside a titled panel with a colored legend', () => {
+    const out = renderLineChart(series, { width: 72, height: 6, title: 'Active users', color: 'always' });
+    const lines = out.split('\n');
+    expect(stripAnsi(lines[0] ?? '')).toContain('╭─ Active users');
+    expect(stripAnsi(lines.at(-1) ?? '').startsWith('╰')).toBe(true);
+    // Each series legend entry is tinted to its categorical color.
+    const c0 = categorical(0);
+    const c1 = categorical(1);
+    expect(out).toContain(`${ESC}[38;2;${c0.r};${c0.g};${c0.b}m`);
+    expect(out).toContain(`${ESC}[38;2;${c1.r};${c1.g};${c1.b}m`);
+  });
+
+  it('mono line chart keeps the legacy "Legend:" line and degrades cleanly', () => {
+    const out = renderLineChart(series, { width: 72, height: 6, color: 'never' });
+    expect(out).not.toContain(ESC);
+    expect(out).toContain('Legend: ● Web ◆ Mobile');
+  });
+
+  it('braille style draws smooth sub-cell curves', () => {
+    const out = renderLineChart(series, { width: 72, height: 6, lineStyle: 'braille', color: 'never' });
+    expect(out).toMatch(/[⠀-⣿]/); // braille block present
+  });
+
+  it('area fill implies a braille body and fills under the line', () => {
+    const single = [{ label: 'p95', points: [{ label: 'a', value: 1 }, { label: 'b', value: 9 }, { label: 'c', value: 4 }] }];
+    const out = renderLineChart(single, { width: 60, height: 6, area: true, color: 'never' });
+    expect(out).toMatch(/[⠀-⣿]/);
+    // The filled-block braille codepoint (all 8 dots, U+28FF) appears in a fill.
+    expect(out).toContain('⣿');
+  });
+
+  it('sparkline: mono is byte-stable, color tints the glyphs', () => {
+    expect(renderSparkline([1, 2, 3, 4, 5], { width: 40, color: 'never' })).toBe('Sparkline: _▂▄▆█ 1 → 5');
+    const colored = renderSparkline([1, 2, 3, 4, 5], { width: 40, color: 'always' });
+    expect(colored).toContain(`${ESC}[38;2;`);
+    expect(stripAnsi(colored)).toBe('Sparkline: _▂▄▆█ 1 → 5');
   });
 });

@@ -1,0 +1,1 @@
+{"chart":"line","title":"p95 latency (ms)","options":{"area":true},"series":[{"label":"p95","points":[{"label":"00:00","value":210},{"label":"03:00","value":190},{"label":"06:00","value":240},{"label":"09:00","value":420},{"label":"12:00","value":510},{"label":"15:00","value":480},{"label":"18:00","value":560},{"label":"21:00","value":300}]}]}

@@ -59,6 +59,18 @@ Color is decided once, at the edge: a terminal gets truecolor; a pipe or a
 captured transcript gets the same layout in clean monochrome Unicode. Same
 geometry either way.
 
+**Line & sparkline** are on the same system: the wide line chart renders in a
+titled panel with per-series color (each series keyed to the palette, matching
+its legend swatch). The default style draws an inline grid (so goal lines, vline
+markers, and shaded spans render in place); `lineStyle: "braille"` switches to
+smooth 2×4 sub-cell curves, and `area: true` fills under the line.
+
+```sh
+agentviz line fixtures/line-weekly-active.json --width 76                 # colored grid
+agentviz line fixtures/line-weekly-active.json --width 76 --linestyle braille  # smooth
+agentviz line fixtures/line-latency.json --width 64                       # area fill
+```
+
 ## CLI
 
 Pass a chart type and a JSON file, or pipe JSON through stdin.

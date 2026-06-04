@@ -720,7 +720,9 @@ describe('cli-viz primitives', () => {
     });
 
     const lines = output.split('\n');
-    const axisFloorIndex = lines.findIndex((line) => /^\s+\+\s+-/.test(line));
+    // The axis floor is "<pad> + ----"; it now sits inside the panel border, so
+    // match the "+ -" run anywhere on the line rather than anchoring at start.
+    const axisFloorIndex = lines.findIndex((line) => /\+\s+-/.test(line));
     expect(axisFloorIndex).toBeGreaterThan(0);
     const rowA = lines[axisFloorIndex + 1] ?? '';
     const rowB = lines[axisFloorIndex + 2] ?? '';
@@ -822,10 +824,10 @@ describe('cli-viz primitives', () => {
       },
     ];
     const markersOnly = renderLineChart(series, { width: 72, height: 6, lineStyle: 'markers-only' });
+    // No connecting-line glyphs between markers. (─ and │ are now panel chrome,
+    // so the meaningful check is the diagonals and the inline horizontal run.)
     expect(markersOnly).not.toContain('╱');
     expect(markersOnly).not.toContain('╲');
-    expect(markersOnly).not.toContain('─');
-    expect(markersOnly).not.toContain('│');
     expect(markersOnly).toContain('●');
   });
 
@@ -866,7 +868,9 @@ describe('cli-viz primitives', () => {
     // The row that ends with "│" (corner connection) must exist; if the bug
     // returns, the lowest row will end at "─" with a gap before the riser.
     const lines = stepped.split('\n');
-    const hasCornerRow = lines.some((line) => /─│\s*$/.test(line));
+    // The corner connection is a "─│" adjacency. (The plot now sits inside a
+    // panel, so the riser is no longer at the literal end of the line.)
+    const hasCornerRow = lines.some((line) => /─│/.test(line));
     expect(hasCornerRow).toBe(true);
   });
 
@@ -921,9 +925,11 @@ describe('cli-viz primitives', () => {
       ],
       { width: 72, height: 6 },
     );
-    expect(baseline).not.toContain('│');
+    // No shade/vline artifacts when those options are absent. (│ is now panel
+    // chrome, so we assert on the annotation summaries instead of the glyph.)
     expect(baseline).not.toContain('░');
     expect(baseline).not.toContain('Shaded:');
+    expect(baseline).not.toContain('Marks:');
     expect(baseline).toContain('Legend: ● rate');
   });
 

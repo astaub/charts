@@ -152,7 +152,7 @@ const CHARTS = new Set<ChartKind>([
 
 // Charts rebuilt on the shared design-system panel (border/title live inside
 // the renderer). Grows as more kinds adopt the component set.
-const PANELED = new Set<ChartKind>(['bar', 'funnel']);
+const PANELED = new Set<ChartKind>(['bar', 'funnel', 'line']);
 
 export interface RenderAgentVizSpecOptions {
   integrity?: boolean;

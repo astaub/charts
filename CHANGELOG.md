@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+- feat(line, sparkline): rebuilt on the shared component system. The wide line
+  chart now renders inside a titled `panel` with **per-series truecolor** (each
+  series + its legend entry keyed to the categorical palette), a dim axis frame,
+  and a goal line tinted to the warn accent. `lineStyle: 'braille'` draws smooth
+  2×4 sub-cell curves, and a new **`area: true`** option fills the region under
+  the line (implies braille). Sparkline gains a ramp-tinted color mode. Mono
+  output is byte-stable where pinned (sparkline) and degrades cleanly; the
+  default `lineStyle` stays `linear` so vlines/shades/goal still draw inline
+  (braille degrades those to compact labelled marks, as before). New line
+  fixtures (`line-weekly-active`, `line-latency` area). Before/after freeze
+  shots in `docs/screenshots/`.
+
 - feat(design-system): **beautiful charts by default.** New shared component
   layer — one set of border/title/subtitle/legend/color-coded-label primitives
   plus a sub-cell-precise meter — so every chart kind reads as one product
