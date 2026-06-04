@@ -4,6 +4,9 @@ const MIN_WIDTH = 32;
 const ANSI_PATTERN = /\u001B\[[0-?]*[ -/]*[@-~]/g;
 const SPARKLINE_BUCKETS = ['_', '▁', '▂', '▃', '▄', '▅', '▆', '▇', '█'];
 const HEAT_BUCKETS = ['.', '░', '▒', '▓', '█'];
+// Braille pattern blank (U+2800): renders empty but shares the braille cell
+// advance, so braille plot rows stay uniform width (clean panel right border).
+const BRAILLE_BLANK = '⠀';
 
 export {
   renderScatterPlot,
@@ -472,13 +475,18 @@ export function renderLineChart(series: LineChartSeries[], options: LineChartOpt
       for (let cx = 0; cx < plotWidth; cx += 1) {
         const ch = (glyph[cy] as string[])[cx] ?? ' ';
         if (ch === ' ') {
-          plot += ' ';
+          // Fill empty cells with blank braille (U+2800) rather than ASCII space,
+          // and never trim the trailing run: every braille cell then shares the
+          // same advance, so every plot row is the same visible width and the
+          // panel's right border is a single clean column (no ragged edge that
+          // tracks the data shape). visualWidth counts U+2800 as 1, like a space.
+          plot += BRAILLE_BLANK;
           continue;
         }
         const color = seriesColors[(owner[cy] as number[])[cx] ?? 0] ?? THEME.accent;
         plot += ctx.color ? fg(color, ch) : ch;
       }
-      bodyLines.push(axisRow(axisLabels[cy] ?? '0', plot.replace(/\s+$/u, '')));
+      bodyLines.push(axisRow(axisLabels[cy] ?? '0', plot));
     }
   } else {
     const grid = Array.from({ length: chartHeight }, () => Array.from({ length: plotWidth }, () => ' '));

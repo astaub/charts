@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+- fix(line): keep the panel right border a single clean column on braille/area
+  charts. Empty braille plot cells are now filled with blank braille (U+2800,
+  same cell advance) and the trailing run is never trimmed, so every plot row is
+  exactly the panel width instead of ending at its last dot. Added a regression
+  test asserting every content row of a paneled chart (bar/funnel/line-linear/
+  line-braille/line-area/retention) has equal ANSI-stripped visible width.
+  (Note: the `freeze` screenshot tool renders braille glyphs wider than ASCII
+  spaces in the bundled macOS mono fonts, so braille/area *screenshots* can still
+  show the plot past the ASCII frame — a freeze font artifact; real terminals
+  render braille at width 1, so the border is clean, as the new test enforces.)
+
 - feat(retention): rebuilt the cohort retention heatmap on the component system.
   The wide layout is now a titled `panel` of **truecolor heat cells** — each
   period cell is a solid background block keyed to its retention rate via a new

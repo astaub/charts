@@ -99,6 +99,42 @@ describe('design system — paneled charts', () => {
   });
 });
 
+describe('design system — panel right-border alignment (no ragged edge)', () => {
+  // The visible (ANSI-stripped) width of every row in a paneled chart must equal
+  // the panel width — otherwise the right border lands at a different column per
+  // row (the ragged-edge bug). Braille plot rows are the historical offender:
+  // empty cells must be padded (blank braille / uniform width), never trimmed.
+  const visW = (line: string) => [...stripAnsi(line)].length;
+  const series = [
+    { label: 'Web', points: [{ label: 'W1', value: 4200 }, { label: 'W2', value: 4810 }, { label: 'W3', value: 5120 }, { label: 'W4', value: 6880 }] },
+    { label: 'Mobile', points: [{ label: 'W1', value: 1800 }, { label: 'W2', value: 2300 }, { label: 'W3', value: 4100 }, { label: 'W4', value: 6010 }] },
+  ];
+  const cohorts = [
+    { label: 'C1', size: 100, periods: [{ label: 'W0', rate: 1 }, { label: 'W1', rate: 0.6 }, { label: 'W2', rate: 0.3 }] },
+    { label: 'C2', size: 80, periods: [{ label: 'W0', rate: 1 }, { label: 'W1', rate: 0.5 }] },
+  ];
+  const width = 72;
+  const cases: Array<[string, string]> = [
+    ['bar', renderBarChart([{ label: 'A', value: 9 }, { label: 'B', value: 3 }], { width, title: 't', color: 'always' })],
+    ['funnel', renderFunnelBars([{ label: 'Visited', count: 90 }, { label: 'Paid', count: 12 }], { width, title: 't', color: 'always' })],
+    ['line-linear', renderLineChart(series, { width, height: 8, title: 't', color: 'always' })],
+    ['line-braille', renderLineChart(series, { width, height: 8, lineStyle: 'braille', title: 't', color: 'always' })],
+    ['line-area', renderLineChart([series[0]!], { width, height: 8, area: true, title: 't', color: 'always' })],
+    ['line-mono', renderLineChart(series, { width, height: 8, lineStyle: 'braille', color: 'never' })],
+    ['retention', renderRetentionHeatmap(cohorts, { width, title: 't', color: 'always' })],
+  ];
+
+  for (const [name, out] of cases) {
+    it(`${name}: every row is exactly the panel width`, () => {
+      const lines = out.split('\n');
+      // Sanity: it really is a panel (rounded corners top and bottom).
+      expect(stripAnsi(lines[0] ?? '').startsWith('╭')).toBe(true);
+      expect(stripAnsi(lines.at(-1) ?? '').startsWith('╰')).toBe(true);
+      for (const line of lines) expect(visW(line)).toBe(width);
+    });
+  }
+});
+
 describe('design system — line / sparkline', () => {
   const series = [
     { label: 'Web', points: [{ label: 'W1', value: 10 }, { label: 'W2', value: 30 }, { label: 'W3', value: 20 }] },
