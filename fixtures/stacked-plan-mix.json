@@ -1,0 +1,6 @@
+{"chart":"stacked","title":"Signups by plan / week","buckets":[
+ {"label":"W1","segments":[{"key":"free","label":"Free","value":620},{"key":"pro","label":"Pro","value":280},{"key":"ent","label":"Enterprise","value":90}]},
+ {"label":"W2","segments":[{"key":"free","label":"Free","value":700},{"key":"pro","label":"Pro","value":340},{"key":"ent","label":"Enterprise","value":120}]},
+ {"label":"W3","segments":[{"key":"free","label":"Free","value":540},{"key":"pro","label":"Pro","value":410},{"key":"ent","label":"Enterprise","value":160}]},
+ {"label":"W4","segments":[{"key":"free","label":"Free","value":480},{"key":"pro","label":"Pro","value":520},{"key":"ent","label":"Enterprise","value":210}]}
+]}

@@ -6,9 +6,12 @@ import {
   rampShade,
   renderBarChart,
   renderFunnelBars,
+  renderGroupedBarChart,
   renderLineChart,
   renderRetentionHeatmap,
   renderSparkline,
+  renderStackedBarChart,
+  renderWaterfallChart,
   resolveCliColorMode,
   resolveColor,
   stripAnsi,
@@ -122,6 +125,20 @@ describe('design system — panel right-border alignment (no ragged edge)', () =
     ['line-area', renderLineChart([series[0]!], { width, height: 8, area: true, title: 't', color: 'always' })],
     ['line-mono', renderLineChart(series, { width, height: 8, lineStyle: 'braille', color: 'never' })],
     ['retention', renderRetentionHeatmap(cohorts, { width, title: 't', color: 'always' })],
+    ['stacked', renderStackedBarChart([
+      { label: 'W1', segments: [{ key: 'a', label: 'A', value: 60 }, { key: 'b', label: 'B', value: 40 }] },
+      { label: 'W2', segments: [{ key: 'a', label: 'A', value: 30 }, { key: 'b', label: 'B', value: 70 }] },
+    ], { width, title: 't', color: 'always' })],
+    ['grouped', renderGroupedBarChart([
+      { label: 'W1', bars: [{ key: 'a', label: 'A', value: 40 }, { key: 'b', label: 'B', value: 12 }] },
+      { label: 'W2', bars: [{ key: 'a', label: 'A', value: 52 }, { key: 'b', label: 'B', value: 18 }] },
+    ], { width, title: 't', color: 'always' })],
+    ['waterfall', renderWaterfallChart([
+      { label: 'Start', value: 100, kind: 'start' },
+      { label: 'Gain', value: 30, kind: 'positive' },
+      { label: 'Loss', value: -20, kind: 'negative' },
+      { label: 'End', value: 110, kind: 'end' },
+    ], { width, title: 't', color: 'always' })],
   ];
 
   for (const [name, out] of cases) {

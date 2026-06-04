@@ -48,7 +48,7 @@ describe('renderGroupedBarChart', () => {
 
   it('honors seriesOrder for left-to-right placement', () => {
     const out = renderGroupedBarChart(weeklyConversion, { width: 72, seriesOrder: ['signed_up', 'followed'] });
-    const legend = out.split('\n').find((line) => line.startsWith('Legend:')) ?? '';
+    const legend = out.split('\n').find((line) => line.includes('Legend:')) ?? '';
     expect(legend.indexOf('Signed up')).toBeLessThan(legend.indexOf('Followed'));
   });
 

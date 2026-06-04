@@ -37,15 +37,15 @@ describe('stacked CLI bar chart', () => {
       width: 108,
       segmentOrder: ['organic', 'bd_referral', 'founder_referral'],
     })).toMatchInlineSnapshot(`
-      "Source Mix Over Time
-      --------------------
-      Legend: A Organic, B BD referral, C Founder referral
-
-      Bucket  Total    Organic  BD referral  Founder referral  Mix
-      ------  -----  ---------  -----------  ----------------  ---------------------------------------------------
-      Jan       240  120 (50%)     90 (38%)          30 (13%)  AAAAAAAAAAAAAAAAAAAAAAAAAABBBBBBBBBBBBBBBBBBBCCCCCC
-      Feb       300  100 (33%)    150 (50%)          50 (17%)  AAAAAAAAAAAAAAAAABBBBBBBBBBBBBBBBBBBBBBBBBBCCCCCCCC
-      Mar       400   80 (20%)    220 (55%)         100 (25%)  AAAAAAAAAABBBBBBBBBBBBBBBBBBBBBBBBBBBBCCCCCCCCCCCCC"
+      "╭─ Source Mix Over Time ───────────────────────────────────────────────────────────────────────────────────╮
+      │ Legend: A Organic B BD referral C Founder referral                                                       │
+      │                                                                                                          │
+      │                                                                                                    Total │
+      │                                                                                                          │
+      │ Jan     AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBCCCCCCCCCCC    240 │
+      │ Feb     AAAAAAAAAAAAAAAAAAAAAAAAAAAAAABBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBCCCCCCCCCCCCCCC    300 │
+      │ Mar     AAAAAAAAAAAAAAAAAABBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBCCCCCCCCCCCCCCCCCCCCCC    400 │
+      ╰──────────────────────────────────────────────────────────────────────────────────────────────────────────╯"
     `);
   });
 
@@ -54,10 +54,7 @@ describe('stacked CLI bar chart', () => {
       width: 42,
       segmentOrder: ['organic', 'bd_referral', 'founder_referral'],
     })).toMatchInlineSnapshot(`
-      "Legend: A Organic, B BD referral, C
-      Founder referral
-
-      1. Jan
+      "1. Jan
        total: 240
        Organic: 120 (50%)
        BD referral: 90 (38%)
@@ -122,11 +119,12 @@ describe('stacked CLI bar chart', () => {
       },
     ], { width: 88, segmentOrder: ['organic', 'bd_referral'] });
 
-    expect(output).toContain('125 (25%)');
-    expect(output).toContain('75 (15%)');
-    expect(output).toContain('0 (0%)');
-    expect(output.split('\n').find((line) => line.includes('Apr'))).toContain('........................');
-    expect(output).toContain('................');
+    // Wide view shows the colored stacked bar + total; the May bucket has a
+    // zero total so its bar is all track (░). Exact per-segment shares live in
+    // the narrow block view (covered above).
+    expect(output).toContain('500');
+    expect(output.split('\n').find((line) => line.includes('Apr'))).toContain('░');
+    expect(output.split('\n').find((line) => line.includes('May'))).toContain('░░░░░░░░░░░░░░░░');
     expect(renderStackedBarChart([], { width: 54 })).toBe('No stacked bar chart data.');
   });
 
@@ -156,7 +154,8 @@ describe('stacked CLI bar chart', () => {
     ] as any, { width: 72 });
 
     expect(output).toContain('BD referral');
-    expect(output).toContain('25 (100%)');
+    // Single full segment → the bar is one color across the full width.
+    expect(output).toContain('AAAA');
   });
 
   it('sanitizes terminal controls and html-looking labels', () => {

@@ -14,5 +14,8 @@ export interface StackedBarChartOptions {
     emptyLabel?: string;
     segmentOrder?: string[];
     showLegend?: boolean;
+    color?: 'never' | 'auto' | 'always';
+    isTTY?: boolean;
+    env?: Record<string, string | undefined>;
 }
 export declare function renderStackedBarChart(buckets: StackedBarBucketDatum[], options?: StackedBarChartOptions): string;

@@ -79,6 +79,17 @@ glyphs when mono), with jagged cohorts showing a dot for unobserved periods.
 agentviz retention fixtures/retention-weekly.json --width 78
 ```
 
+The **bar-family** kinds share the same chrome: **stacked** draws a colored
+stacked bar + legend + total; **grouped** draws palette-colored grouped columns;
+**waterfall** tints bars by kind (gains green, drops red, start/end accent) with
+a sign-tinted change column — an MRR bridge that reads at a glance.
+
+```sh
+agentviz stacked   fixtures/stacked-plan-mix.json     --width 72
+agentviz grouped   fixtures/grouped-engagement.json   --width 72
+agentviz waterfall fixtures/waterfall-mrr-bridge.json --width 80
+```
+
 ## CLI
 
 Pass a chart type and a JSON file, or pipe JSON through stdin.

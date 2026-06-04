@@ -13,12 +13,14 @@ describe('waterfall cli-viz primitive', () => {
     ], { width: 88 });
 
     expect(output).toMatchInlineSnapshot(`
-      "Step                          Value    Change     Total  Bar
-      -------------------------  --------  --------  --------  -----------------------------
-      Acquired                        662     start       662  █████████████████████████████
-      Lost before qualification       272      -272       390  |               ░░░░░░░░░░░░░
-      Lost before activation          228      -228       162  |      ░░░░░░░░░░
-      Launched                        162       end       162  ████████"
+      "╭──────────────────────────────────────────────────────────────────────────────────────╮
+      │ Step                       Value  Change  Total  Bar                                 │
+      │                                                                                      │
+      │ Acquired                     662   start    662  ███████████████████████████████████ │
+      │ Lost before qualification    272    -272    390  |                   ░░░░░░░░░░░░░░░ │
+      │ Lost before activation       228    -228    162  |       ░░░░░░░░░░░░░               │
+      │ Launched                     162     end    162  █████████                           │
+      ╰──────────────────────────────────────────────────────────────────────────────────────╯"
     `);
     expect(output).toContain('662');
     expect(output).toContain('-272');

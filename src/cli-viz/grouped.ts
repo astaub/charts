@@ -1,3 +1,8 @@
+import { categorical, dim, fg, FULL_BLOCK, THEME, type RGB } from './theme.js';
+import { panel } from './components.js';
+import { makeRenderCtx } from './render-context.js';
+import type { RenderCtx } from './components.js';
+
 const DEFAULT_WIDTH = 80;
 const NARROW_WIDTH = 54;
 const MIN_WIDTH = 32;
@@ -43,6 +48,9 @@ export interface GroupedBarChartOptions {
   valueFormat?: GroupedBarValueFormat;
   unit?: GroupedBarUnit;
   footer?: string;
+  color?: 'never' | 'auto' | 'always';
+  isTTY?: boolean;
+  env?: Record<string, string | undefined>;
 }
 
 interface CleanBar {
@@ -60,6 +68,7 @@ interface SeriesMeta {
   key: string;
   label: string;
   symbol: string;
+  color: RGB;
 }
 
 export function renderGroupedBarChart(buckets: GroupedBarBucketDatum[], options: GroupedBarChartOptions = {}): string {
@@ -73,9 +82,7 @@ export function renderGroupedBarChart(buckets: GroupedBarBucketDatum[], options:
   const series = seriesMetadata(cleanBuckets, options.seriesOrder);
   if (series.length === 0) return truncateLine(emptyLabel, width);
 
-  const title = options.title === undefined ? undefined : sanitizeText(options.title);
-  const legend = options.showLegend === false ? undefined : renderLegend(series, width);
-
+  const ctx = makeRenderCtx(options);
   const values = cleanBuckets.flatMap((bucket) => bucket.bars.map((bar) => bar.value));
   const maxValue = Math.max(...values, 0);
 
@@ -83,20 +90,39 @@ export function renderGroupedBarChart(buckets: GroupedBarBucketDatum[], options:
   const axisLabels = groupedAxisLabels(maxValue, chartHeight, options);
   const labelWidth = Math.max(5, longest(axisLabels));
 
-  const layout = resolveLayout(cleanBuckets.length, series.length, labelWidth, width);
+  // Plot lives inside the panel: lay out against the inner content width.
+  const contentWidth = width - 4;
+  const layout = resolveLayout(cleanBuckets.length, series.length, labelWidth, contentWidth);
 
-  const body = layout === undefined
-    ? renderGroupedBlocks(cleanBuckets, series, options, width)
-    : renderGroupedPlot(cleanBuckets, series, options, layout, chartHeight, maxValue, axisLabels, labelWidth, width);
+  // Narrow / can't-fit → keep the plain per-bucket block listing.
+  if (layout === undefined) {
+    return renderGroupedBlocks(cleanBuckets, series, options, width);
+  }
 
-  const lines = [
-    ...(title ? [truncateLine(title, width), repeat('-', Math.min(width, visualWidth(title)))] : []),
-    ...(legend ? [legend, ''] : []),
+  const body: string[] = [];
+  if (options.showLegend !== false) body.push(...groupedLegendLines(ctx, series, contentWidth), '');
+  body.push(...renderGroupedPlot(ctx, cleanBuckets, series, options, layout, chartHeight, maxValue, axisLabels, labelWidth));
+  const footer = renderFooter(options.footer, contentWidth);
+  if (footer.length > 0) body.push(...footer);
+
+  return panel(ctx, {
     body,
-    ...renderFooter(options.footer, width),
-  ];
+    width,
+    accent: THEME.accent,
+    ...(options.title ? { title: sanitizeText(options.title) } : {}),
+  }).join('\n');
+}
 
-  return lines.filter((line) => line !== undefined).join('\n');
+// Colored ● swatches in color mode; mono keys the legend by each series' letter
+// symbol so it matches the symbols painted into the bars.
+function groupedLegendLines(ctx: RenderCtx, series: SeriesMeta[], width: number): string[] {
+  if (ctx.color) {
+    const entries = series.map((meta) => `${fg(meta.color, '●')} ${fg(meta.color, meta.label)}`);
+    const oneLine = `${dim('Legend:')} ${entries.join('   ')}`;
+    if (ctx.visualWidth(oneLine) <= width) return [oneLine];
+    return [dim('Legend:'), ...entries];
+  }
+  return wrapLine(`Legend: ${series.map((meta) => `${meta.symbol} ${meta.label}`).join('   ')}`, width);
 }
 
 function cleanGroupedBuckets(buckets: GroupedBarBucketDatum[]): CleanBucket[] {
@@ -138,6 +164,7 @@ function seriesMetadata(buckets: CleanBucket[], seriesOrder: string[] | undefine
     key,
     label: byKey.get(key) ?? key,
     symbol: SERIES_SYMBOLS[index] ?? '?',
+    color: categorical(index),
   }));
 }
 
@@ -179,6 +206,7 @@ function groupCenters(bucketCount: number, groupWidth: number, groupGap: number)
 }
 
 function renderGroupedPlot(
+  ctx: RenderCtx,
   buckets: CleanBucket[],
   series: SeriesMeta[],
   options: GroupedBarChartOptions,
@@ -187,10 +215,10 @@ function renderGroupedPlot(
   maxValue: number,
   axisLabels: string[],
   labelWidth: number,
-  width: number,
-): string {
+): string[] {
   const { barWidth, groupWidth, groupGap, plotWidth, positions } = layout;
   const grid = Array.from({ length: chartHeight }, () => Array.from({ length: plotWidth }, () => ' '));
+  const colorBySymbol = new Map(series.map((meta) => [meta.symbol, meta.color]));
 
   // Markers first so bars paint over them on collision.
   const markers = resolveMarkers(options.markers, buckets, positions);
@@ -212,6 +240,7 @@ function renderGroupedPlot(
     });
   });
 
+  const dimText = (text: string) => (ctx.color ? dim(text) : text);
   const lines: string[] = [];
 
   // Marker labels above the plot.
@@ -219,12 +248,20 @@ function renderGroupedPlot(
   if (aboveLabels) lines.push(aboveLabels);
 
   for (let row = 0; row < chartHeight; row += 1) {
-    lines.push(`${padCell(axisLabels[row] ?? '0', labelWidth, 'right')} | ${grid[row]?.join('').trimEnd() ?? ''}`);
+    const cells = grid[row] ?? [];
+    let plot = '';
+    for (const ch of cells) {
+      if (ch === ' ') plot += ' ';
+      else if (ch === '│') plot += dimText('│'); // marker rule
+      else if (ctx.color) plot += fg(colorBySymbol.get(ch) ?? THEME.accent, FULL_BLOCK); // colored bar cell
+      else plot += ch; // mono: series symbol
+    }
+    lines.push(`${dimText(padCell(axisLabels[row] ?? '0', labelWidth, 'right'))} ${dimText('|')} ${plot}`);
   }
-  lines.push(`${repeat(' ', labelWidth)} + ${repeat('-', Math.max(1, plotWidth))}`);
-  lines.push(...groupedBucketLabelLines(buckets, positions, labelWidth, plotWidth));
+  lines.push(`${dimText(repeat(' ', labelWidth))} ${dimText('+')} ${dimText(repeat('-', Math.max(1, plotWidth)))}`);
+  lines.push(...groupedBucketLabelLines(buckets, positions, labelWidth, plotWidth).map(dimText));
 
-  return lines.map((line) => truncateLine(line, width).trimEnd()).join('\n');
+  return lines;
 }
 
 function renderGroupedBlocks(
@@ -355,10 +392,6 @@ function groupedAxisLabels(maxValue: number, chartHeight: number, options: Group
     const value = maxValue - (row / Math.max(1, chartHeight - 1)) * maxValue;
     return formatValue(value, options);
   });
-}
-
-function renderLegend(series: SeriesMeta[], width: number): string {
-  return wrapLine(`Legend: ${series.map((meta) => `${meta.symbol} ${meta.label}`).join(', ')}`, width).join('\n');
 }
 
 function renderFooter(footer: string | undefined, width: number): string[] {

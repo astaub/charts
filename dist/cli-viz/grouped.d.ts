@@ -32,5 +32,8 @@ export interface GroupedBarChartOptions {
     valueFormat?: GroupedBarValueFormat;
     unit?: GroupedBarUnit;
     footer?: string;
+    color?: 'never' | 'auto' | 'always';
+    isTTY?: boolean;
+    env?: Record<string, string | undefined>;
 }
 export declare function renderGroupedBarChart(buckets: GroupedBarBucketDatum[], options?: GroupedBarChartOptions): string;

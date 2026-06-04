@@ -1,3 +1,7 @@
+import { categorical, dim, fg, FULL_BLOCK, THEME, type RGB } from './theme.js';
+import { legend as legendComponent, padEnd, padStart, panel, type LegendItem } from './components.js';
+import { makeRenderCtx } from './render-context.js';
+
 const DEFAULT_WIDTH = 80;
 const NARROW_WIDTH = 64;
 const MIN_WIDTH = 32;
@@ -22,6 +26,9 @@ export interface StackedBarChartOptions {
   emptyLabel?: string;
   segmentOrder?: string[];
   showLegend?: boolean;
+  color?: 'never' | 'auto' | 'always';
+  isTTY?: boolean;
+  env?: Record<string, string | undefined>;
 }
 
 interface CleanSegment {
@@ -40,6 +47,7 @@ interface SegmentMeta {
   key: string;
   label: string;
   symbol: string;
+  color: RGB;
 }
 
 export function renderStackedBarChart(buckets: StackedBarBucketDatum[], options: StackedBarChartOptions = {}): string {
@@ -53,18 +61,47 @@ export function renderStackedBarChart(buckets: StackedBarBucketDatum[], options:
   const segments = segmentMetadata(cleanBuckets, options.segmentOrder);
   if (segments.length === 0) return truncateLine(emptyLabel, width);
 
-  const title = options.title === undefined ? undefined : sanitizeText(options.title);
-  const legend = options.showLegend === false ? undefined : renderLegend(segments, width);
-  const body = shouldRenderBlocks(cleanBuckets, segments, width)
-    ? renderStackedBlocks(cleanBuckets, segments, width)
-    : renderStackedTable(cleanBuckets, segments, width);
-  const lines = [
-    ...(title ? [truncateLine(title, width), repeat('-', Math.min(width, visualWidth(title)))] : []),
-    ...(legend ? [legend, ''] : []),
-    body,
-  ];
+  const ctx = makeRenderCtx(options);
 
-  return lines.filter((line) => line !== undefined).join('\n');
+  // Narrow / can't-fit → keep the plain per-bucket block listing.
+  if (shouldRenderBlocks(cleanBuckets, segments, width)) {
+    return renderStackedBlocks(cleanBuckets, segments, width);
+  }
+
+  const inner = width - 4;
+  const bucketWidth = Math.min(16, Math.max(6, longest(cleanBuckets.map((bucket) => bucket.label))));
+  const totalWidth = Math.max('Total'.length, longest(cleanBuckets.map((bucket) => formatNumber(bucket.total))));
+  const gap = '  ';
+  const barWidth = Math.max(8, inner - bucketWidth - totalWidth - gap.length * 2);
+
+  const body: string[] = [];
+  if (options.showLegend !== false) {
+    const items: LegendItem[] = segments.map((segment) => ({ label: segment.label, color: segment.color }));
+    // Color mode uses colored ● swatches; mono keys the legend by the segment's
+    // letter symbol so it matches the symbols painted into the stacked bar.
+    if (ctx.color) {
+      body.push(...legendComponent(ctx, items, inner), '');
+    } else {
+      const monoLegend = segments.map((segment) => `${segment.symbol} ${segment.label}`).join('   ');
+      body.push(...wrapLine(`Legend: ${monoLegend}`, inner), '');
+    }
+  }
+  const header = padEnd(ctx, '', bucketWidth) + gap + padEnd(ctx, '', barWidth) + gap + padStart(ctx, 'Total', totalWidth);
+  body.push(ctx.color ? dim(header) : header, '');
+
+  for (const bucket of cleanBuckets) {
+    const label = padEnd(ctx, ctx.truncate(bucket.label, bucketWidth), bucketWidth);
+    const bar = renderStack(ctx, bucket, segments, barWidth);
+    const total = padStart(ctx, formatNumber(bucket.total), totalWidth);
+    body.push(`${label}${gap}${bar}${gap}${ctx.color ? dim(total) : total}`);
+  }
+
+  return panel(ctx, {
+    body,
+    width,
+    accent: THEME.accent,
+    ...(options.title ? { title: sanitizeText(options.title) } : {}),
+  }).join('\n');
 }
 
 function cleanStackedBuckets(buckets: StackedBarBucketDatum[]): CleanBucket[] {
@@ -108,6 +145,7 @@ function segmentMetadata(buckets: CleanBucket[], segmentOrder: string[] | undefi
     key,
     label: byKey.get(key) ?? key,
     symbol: SEGMENT_SYMBOLS[index] ?? '?',
+    color: categorical(index),
   }));
 }
 
@@ -123,47 +161,11 @@ function shouldRenderBlocks(buckets: CleanBucket[], segments: SegmentMeta[], wid
   return fixedWidth > width;
 }
 
-function renderStackedTable(buckets: CleanBucket[], segments: SegmentMeta[], width: number): string {
-  const bucketWidth = Math.min(16, Math.max(6, longest(buckets.map((bucket) => bucket.label))));
-  const totalWidth = Math.max(5, longest(buckets.map((bucket) => formatNumber(bucket.total))));
-  const segmentWidths = segments.map((segment) => {
-    const values = buckets.map((bucket) => formatSegmentShare(findSegment(bucket, segment.key)?.value ?? 0, bucket.total));
-    return Math.min(18, Math.max(visualWidth(segment.label), ...values.map(visualWidth)));
-  });
-  const barWidth = Math.max(8, width - bucketWidth - totalWidth - segmentWidths.reduce((sum, next) => sum + next, 0) - (segments.length + 2) * 2);
-  const lines = [
-    [
-      padCell('Bucket', bucketWidth, 'left'),
-      padCell('Total', totalWidth, 'right'),
-      ...segments.map((segment, index) => padCell(segment.label, segmentWidths[index] ?? 0, 'right')),
-      'Mix',
-    ].join('  '),
-    [
-      repeat('-', bucketWidth),
-      repeat('-', totalWidth),
-      ...segmentWidths.map((segmentWidth) => repeat('-', segmentWidth)),
-      repeat('-', barWidth),
-    ].join('  '),
-  ];
-
-  for (const bucket of buckets) {
-    lines.push(
-      [
-        padCell(bucket.label, bucketWidth, 'left'),
-        padCell(formatNumber(bucket.total), totalWidth, 'right'),
-        ...segments.map((segment, index) =>
-          padCell(formatSegmentShare(findSegment(bucket, segment.key)?.value ?? 0, bucket.total), segmentWidths[index] ?? 0, 'right'),
-        ),
-        renderStack(bucket, segments, barWidth),
-      ].join('  '),
-    );
-  }
-
-  return lines.map((line) => truncateLine(line, width).trimEnd()).join('\n');
-}
-
 function renderStackedBlocks(buckets: CleanBucket[], segments: SegmentMeta[], width: number): string {
   const barWidth = Math.max(8, Math.min(32, width - 8));
+  // The narrow listing is plain text (wrapLine strips ANSI), so the mix bar uses
+  // the letter-symbol (mono) form.
+  const monoCtx = makeRenderCtx({ color: 'never' });
   return buckets
     .flatMap((bucket, index) => {
       const prefix = `${index + 1}. `;
@@ -174,19 +176,20 @@ function renderStackedBlocks(buckets: CleanBucket[], segments: SegmentMeta[], wi
         ...segments.flatMap((segment) =>
           wrapLine(`   ${segment.label}: ${formatSegmentShare(findSegment(bucket, segment.key)?.value ?? 0, bucket.total)}`, width),
         ),
-        ...wrapLine(`   mix: ${renderStack(bucket, segments, barWidth)}`, width),
+        ...wrapLine(`   mix: ${renderStack(monoCtx, bucket, segments, barWidth)}`, width),
       ];
     })
     .join('\n');
 }
 
-function renderLegend(segments: SegmentMeta[], width: number): string {
-  return wrapLine(`Legend: ${segments.map((segment) => `${segment.symbol} ${segment.label}`).join(', ')}`, width).join('\n');
-}
-
-function renderStack(bucket: CleanBucket, segments: SegmentMeta[], width: number): string {
+// The signature stacked bar: each segment is a proportional run of solid blocks
+// in its palette color (color mode) or its letter symbol (mono). Any uncovered
+// remainder is a faint track so the bar always fills `width` columns cleanly.
+function renderStack(ctx: ReturnType<typeof makeRenderCtx>, bucket: CleanBucket, segments: SegmentMeta[], width: number): string {
+  const trackCell = (count: number) =>
+    count <= 0 ? '' : ctx.color ? fg(THEME.track, FULL_BLOCK.repeat(count)) : repeat('░', count);
   if (width <= 0) return '';
-  if (bucket.total <= 0) return repeat('.', width);
+  if (bucket.total <= 0) return trackCell(width);
 
   const rawWidths = segments.map((segment) => {
     const value = findSegment(bucket, segment.key)?.value ?? 0;
@@ -205,7 +208,7 @@ function renderStack(bucket: CleanBucket, segments: SegmentMeta[], width: number
   const sorted = [...positive].sort((left, right) => right.remainder - left.remainder);
 
   for (let index = 0; used < targetUsed && sorted.length > 0; index += 1) {
-    sorted[index % sorted.length].whole += 1;
+    (sorted[index % sorted.length] as (typeof sorted)[number]).whole += 1;
     used += 1;
   }
 
@@ -216,8 +219,12 @@ function renderStack(bucket: CleanBucket, segments: SegmentMeta[], width: number
     used -= 1;
   }
 
-  const output = rawWidths.map((entry) => repeat(entry.segment.symbol, entry.whole)).join('');
-  return output.length === 0 ? repeat('.', width) : output.padEnd(width, '.').slice(0, width);
+  const filled = rawWidths
+    .filter((entry) => entry.whole > 0)
+    .map((entry) => (ctx.color ? fg(entry.segment.color, FULL_BLOCK.repeat(entry.whole)) : repeat(entry.segment.symbol, entry.whole)))
+    .join('');
+  const filledCols = rawWidths.reduce((sum, entry) => sum + entry.whole, 0);
+  return filled + trackCell(Math.max(0, width - filledCols));
 }
 
 function findSegment(bucket: CleanBucket, key: string): CleanSegment | undefined {
@@ -226,12 +233,6 @@ function findSegment(bucket: CleanBucket, key: string): CleanSegment | undefined
 
 function formatSegmentShare(value: number, total: number): string {
   return `${formatNumber(value)} (${formatPercent(ratio(value, total))})`;
-}
-
-function padCell(value: string, width: number, align: 'left' | 'right'): string {
-  const text = truncateLine(value, width);
-  const padding = repeat(' ', Math.max(0, width - visualWidth(text)));
-  return align === 'right' ? `${padding}${text}` : `${text}${padding}`;
 }
 
 function truncateLine(value: string, width: number): string {

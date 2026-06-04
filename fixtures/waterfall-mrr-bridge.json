@@ -1,0 +1,8 @@
+{"chart":"waterfall","title":"MRR bridge (Q2)","steps":[
+ {"label":"Starting MRR","value":420000,"kind":"start"},
+ {"label":"New business","value":85000,"kind":"positive"},
+ {"label":"Expansion","value":42000,"kind":"positive"},
+ {"label":"Churn","value":-38000,"kind":"negative"},
+ {"label":"Contraction","value":-16000,"kind":"negative"},
+ {"label":"Ending MRR","value":493000,"kind":"end"}
+]}

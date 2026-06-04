@@ -7,5 +7,9 @@ export interface WaterfallStep {
 export interface WaterfallChartOptions {
     width?: number;
     emptyLabel?: string;
+    title?: string;
+    color?: 'never' | 'auto' | 'always';
+    isTTY?: boolean;
+    env?: Record<string, string | undefined>;
 }
 export declare function renderWaterfallChart(steps: WaterfallStep[], options?: WaterfallChartOptions): string;

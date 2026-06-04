@@ -26,6 +26,9 @@ FORCE_COLOR=1 bun src/cli.ts funnel fixtures/funnel-checkout.json > out.ans
 | `line-weekly-active.json` | line | two-series trend (web vs mobile WAU) |
 | `line-latency.json` | line | single-series area chart (`options.area`) |
 | `retention-weekly.json` | retention | jagged weekly cohort heatmap |
+| `stacked-plan-mix.json` | stacked | signups by plan over weeks (colored stack) |
+| `grouped-engagement.json` | grouped | grouped columns per week (3 series) |
+| `waterfall-mrr-bridge.json` | waterfall | MRR bridge (gains green / drops red) |
 
 More kinds (line, sparkline, heatmap/retention, scatter, stacked, grouped,
 waterfall, dashboards) land alongside the renderers that adopt the shared

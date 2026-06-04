@@ -1,0 +1,6 @@
+{"chart":"grouped","title":"Weekly engagement","buckets":[
+ {"label":"W1","bars":[{"key":"followed","label":"Followed","value":40},{"key":"signed","label":"Signed up","value":12},{"key":"paid","label":"Paid","value":4}]},
+ {"label":"W2","bars":[{"key":"followed","label":"Followed","value":52},{"key":"signed","label":"Signed up","value":18},{"key":"paid","label":"Paid","value":7}]},
+ {"label":"W3","bars":[{"key":"followed","label":"Followed","value":61},{"key":"signed","label":"Signed up","value":24},{"key":"paid","label":"Paid","value":11}]},
+ {"label":"W4","bars":[{"key":"followed","label":"Followed","value":58},{"key":"signed","label":"Signed up","value":29},{"key":"paid","label":"Paid","value":15}]}
+]}

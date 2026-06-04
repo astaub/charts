@@ -1,3 +1,8 @@
+import { dim, fg, FULL_BLOCK, THEME, type RGB } from './theme.js';
+import { panel } from './components.js';
+import { makeRenderCtx } from './render-context.js';
+import type { RenderCtx } from './components.js';
+
 const DEFAULT_WIDTH = 80;
 const NARROW_WIDTH = 54;
 const MIN_WIDTH = 32;
@@ -14,6 +19,18 @@ export interface WaterfallStep {
 export interface WaterfallChartOptions {
   width?: number;
   emptyLabel?: string;
+  title?: string;
+  color?: 'never' | 'auto' | 'always';
+  isTTY?: boolean;
+  env?: Record<string, string | undefined>;
+}
+
+// Semantic color per step kind: gains are positive (green), drops negative
+// (red), and the start/end totals use the brand accent.
+function kindColor(kind: WaterfallStepKind): RGB {
+  if (kind === 'negative') return THEME.negative;
+  if (kind === 'positive') return THEME.positive;
+  return THEME.accent;
 }
 
 interface CleanWaterfallStep {
@@ -39,45 +56,51 @@ export function renderWaterfallChart(steps: WaterfallStep[], options: WaterfallC
   const segments = waterfallSegments(cleanSteps);
   if (width < NARROW_WIDTH) return renderWaterfallBlocks(segments, width);
 
+  const ctx = makeRenderCtx(options);
   const labelWidth = Math.min(30, Math.max(8, longest(segments.map((segment) => segment.label))));
-  const valueWidth = Math.max(8, longest(segments.map((segment) => formatNumber(segment.value))));
-  const changeWidth = Math.max(8, longest(segments.map((segment) => formatChange(segment))));
-  const totalWidth = Math.max(8, longest(segments.map((segment) => formatNumber(segment.total))));
-  const fixedWidth = labelWidth + valueWidth + changeWidth + totalWidth + 10;
+  const valueWidth = Math.max('Value'.length, longest(segments.map((segment) => formatNumber(segment.value))));
+  const changeWidth = Math.max('Change'.length, longest(segments.map((segment) => formatChange(segment))));
+  const totalWidth = Math.max('Total'.length, longest(segments.map((segment) => formatNumber(segment.total))));
+  const gap = '  ';
+  const inner = width - 4;
+  const fixedWidth = labelWidth + valueWidth + changeWidth + totalWidth + gap.length * 4;
 
-  if (fixedWidth + 6 > width) return renderWaterfallBlocks(segments, width);
+  if (fixedWidth + 6 > inner) return renderWaterfallBlocks(segments, width);
 
-  const barWidth = Math.max(6, width - fixedWidth);
-  const lines = [
-    [
-      padCell('Step', labelWidth, 'left'),
-      padCell('Value', valueWidth, 'right'),
-      padCell('Change', changeWidth, 'right'),
-      padCell('Total', totalWidth, 'right'),
-      'Bar',
-    ].join('  '),
-    [
-      repeat('-', labelWidth),
-      repeat('-', valueWidth),
-      repeat('-', changeWidth),
-      repeat('-', totalWidth),
-      repeat('-', barWidth),
-    ].join('  '),
-  ];
+  const barWidth = Math.max(6, inner - fixedWidth);
+  const dimText = (text: string) => (ctx.color ? dim(text) : text);
+  const header = [
+    padCell('Step', labelWidth, 'left'),
+    padCell('Value', valueWidth, 'right'),
+    padCell('Change', changeWidth, 'right'),
+    padCell('Total', totalWidth, 'right'),
+    padCell('Bar', barWidth, 'left'),
+  ].join(gap);
+  const body: string[] = [dimText(header), ''];
 
   for (const segment of segments) {
-    lines.push(
+    // The Change column is tinted by direction (a small Tremor-style delta cue).
+    const changeText = padCell(formatChange(segment), changeWidth, 'right');
+    const change = !ctx.color || segment.kind === 'start' || segment.kind === 'end'
+      ? dimText(changeText)
+      : fg(segment.delta < 0 ? THEME.negative : THEME.positive, changeText);
+    body.push(
       [
         padCell(segment.label, labelWidth, 'left'),
         padCell(formatNumber(segment.value), valueWidth, 'right'),
-        padCell(formatChange(segment), changeWidth, 'right'),
-        padCell(formatNumber(segment.total), totalWidth, 'right'),
-        waterfallBar(segment, segments, barWidth),
-      ].join('  '),
+        change,
+        dimText(padCell(formatNumber(segment.total), totalWidth, 'right')),
+        waterfallBar(ctx, segment, segments, barWidth),
+      ].join(gap),
     );
   }
 
-  return lines.map((line) => truncateLine(line, width).trimEnd()).join('\n');
+  return panel(ctx, {
+    body,
+    width,
+    accent: THEME.accent,
+    ...(options.title ? { title: sanitizeText(options.title) } : {}),
+  }).join('\n');
 }
 
 function normalizeSteps(steps: WaterfallStep[]): CleanWaterfallStep[] {
@@ -149,28 +172,34 @@ function waterfallCompactLine(segment: WaterfallSegment): string {
   return `# ${formatNumber(segment.base)} to ${formatNumber(segment.total)}`;
 }
 
-function waterfallBar(segment: WaterfallSegment, segments: WaterfallSegment[], width: number): string {
+function waterfallBar(ctx: RenderCtx, segment: WaterfallSegment, segments: WaterfallSegment[], width: number): string {
   const bounds = waterfallBounds(segments);
   const min = bounds.min;
   const max = bounds.max;
   if (width <= 0) return '';
-  if (max === min) return repeat('█', Math.min(width, 1));
 
-  const start = segment.kind === 'start' || segment.kind === 'end' ? Math.min(0, segment.total) : Math.min(segment.base, segment.total);
-  const end = segment.kind === 'start' || segment.kind === 'end' ? Math.max(0, segment.total) : Math.max(segment.base, segment.total);
-  const left = scalePosition(start, min, max, width);
-  const right = Math.max(left, scalePosition(end, min, max, width));
-  const fill = segment.kind === 'negative' ? '░' : segment.kind === 'positive' ? '#' : '█';
-  const chars = Array.from({ length: width }, () => ' ');
+  // Mono distinguishes kinds by glyph; color uses a solid block tinted by kind.
+  const monoFill = segment.kind === 'negative' ? '░' : segment.kind === 'positive' ? '#' : '█';
+  const fill = ctx.color ? fg(kindColor(segment.kind), FULL_BLOCK) : monoFill;
+  const zeroMark = ctx.color ? dim('|') : '|';
+  const cells = Array.from({ length: width }, () => ' ');
 
-  for (let index = left; index <= right && index < chars.length; index += 1) {
-    if (index >= 0) chars[index] = fill;
+  if (max !== min) {
+    const start = segment.kind === 'start' || segment.kind === 'end' ? Math.min(0, segment.total) : Math.min(segment.base, segment.total);
+    const end = segment.kind === 'start' || segment.kind === 'end' ? Math.max(0, segment.total) : Math.max(segment.base, segment.total);
+    const left = scalePosition(start, min, max, width);
+    const right = Math.max(left, scalePosition(end, min, max, width));
+    for (let index = left; index <= right && index < cells.length; index += 1) {
+      if (index >= 0) cells[index] = fill;
+    }
+    const zero = scalePosition(0, min, max, width);
+    if (zero >= 0 && zero < cells.length && cells[zero] === ' ') cells[zero] = zeroMark;
+  } else if (cells.length > 0) {
+    cells[0] = fill;
   }
 
-  const zero = scalePosition(0, min, max, width);
-  if (zero >= 0 && zero < chars.length && chars[zero] === ' ') chars[zero] = '|';
-
-  return chars.join('').trimEnd();
+  // Full width (never trimmed) so the panel right border stays a clean column.
+  return cells.join('');
 }
 
 function waterfallBounds(segments: WaterfallSegment[]): { min: number; max: number } {

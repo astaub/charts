@@ -2,6 +2,23 @@
 
 ## Unreleased
 
+- feat(stacked, grouped, waterfall): rebuilt the bar-family charts on the shared
+  component system so they read as one product with bar/funnel/line/retention.
+  All three now render inside a titled `panel` with truecolor and a clean
+  monochrome degrade (piped / `NO_COLOR`), and a new shared `render-context.ts`
+  provides the one ANSI-aware width model + `makeRenderCtx` the kinds draw with.
+  - **stacked**: a colored stacked bar (each segment a palette-colored run, faint
+    track for any unfilled remainder) with a colored legend + total per bucket.
+    Per-segment exact counts/shares now live in the narrow block view (the wide
+    view is the standard bar+legend presentation); the input schema is unchanged.
+  - **grouped**: grouped columns colored per series, colored legend, dim axis.
+  - **waterfall**: bars tinted by kind (gains green, drops red, start/end accent)
+    with a sign-tinted Change column — an MRR-bridge that reads at a glance.
+  Added `stacked-plan-mix`, `grouped-engagement`, `waterfall-mrr-bridge`
+  fixtures and panel-right-border alignment regression cases for each. Color is
+  resolved at the CLI edge (all three added to the paneled set). Before/after
+  freeze shots in `docs/screenshots/`.
+
 - fix(line): keep the panel right border a single clean column on braille/area
   charts. Empty braille plot cells are now filled with blank braille (U+2800,
   same cell advance) and the trailing run is never trimmed, so every plot row is
