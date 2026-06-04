@@ -55,24 +55,10 @@ npm install @staub/agentviz
 - Keep output readable inside narrow terminals and chat transcripts.
 - Avoid browser screenshots when a text report is enough.
 
-## Beautiful charts inside your CLI
+## How it works
 
-agentviz is a terminal-chart **design system**, not just a plotter: charts come
-out beautiful and legible without the caller tuning anything. Every kind draws
-from one shared set of components, so the whole output reads as a single product.
-
-Funnel — before vs after:
-
-![funnel before](docs/screenshots/funnel-before.png)
-![funnel after](docs/screenshots/funnel-after.png)
-
-Bar — before vs after:
-
-![bar before](docs/screenshots/bar-before.png)
-![bar after](docs/screenshots/bar-after.png)
-
-How it is built (two layers, inspired by visx's composable primitives and
-Tremor's beautiful-by-default assembly):
+Two layers, inspired by visx's composable primitives and Tremor's
+beautiful-by-default assembly:
 
 - **`cli-viz/theme.ts` — primitives.** A color/degrade layer (truecolor 24-bit
   on a TTY or under `FORCE_COLOR`, clean monochrome Unicode when piped, off under
@@ -389,13 +375,14 @@ to prior releases.
 - bars and sparklines
 - big numbers with period-over-period delta
 - funnels with previous-step and total retention
-- line charts (block or high-resolution braille), with goal lines and y-axis units
+- line charts (block, high-resolution braille, or filled area), with goal lines and y-axis units
 - filter summaries and suggested filters
 - retention heatmaps
 - stacked bars
 - grouped (side-by-side) bars with vertical markers
 - waterfall charts
 - scatter plots
+- dashboards — a grid of KPI tiles + charts composed into one multi-panel view
 
 ## Boundaries
 
