@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+- feat(bignumber): the big-number widget is now a composable **KPI tile** on the
+  shared design system — a titled `panel` with a bold value, a semantic delta
+  (`deltaBadge`, green-good / red-bad honoring `goodDirection`), and a
+  mini-sparkline (`inlineSparkline`) — reusing the growth primitives. The
+  delta caption is now `vs <previous>` and the heading (from `title` ?? `label`)
+  draws into the panel border; `bignumber` joined the paneled set. Clean
+  monochrome degrade. New `bignumber-signups` fixture + panel-alignment case.
+  Demo (signups ▲ green / churn ▼ green / MRR ▼ red) in
+  `docs/screenshots/kpi-tiles.png`.
+
 - feat(growth): reusable **delta indicator** + **inline sparkline** primitives —
   the first of the growth-viz building blocks. `deltaBadge(ctx, change, opts)`
   renders a period-over-period delta as `▲ 12%` / `▼ 5%` / `→ 0%`, tinted green

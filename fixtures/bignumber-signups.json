@@ -1,0 +1,10 @@
+{
+  "chart": "bignumber",
+  "value": 1234,
+  "options": {
+    "label": "Weekly signups",
+    "previous": 1102,
+    "goodDirection": "up",
+    "sparkline": [800, 900, 1102, 1050, 1180, 1234]
+  }
+}

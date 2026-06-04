@@ -11,7 +11,9 @@ export interface BigNumberOptions {
     color?: BigNumberColorMode;
     isTTY?: boolean;
     env?: Record<string, string | undefined>;
-    /** Caption above the value. */
+    /** Tile heading (drawn into the panel border). Falls back to `label`. */
+    title?: string;
+    /** Caption / tile heading. */
     label?: string;
     /** Unit affixes for the value (and the previous-period value). */
     unit?: BigNumberUnit;

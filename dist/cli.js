@@ -52,7 +52,7 @@ const CHARTS = new Set([
 ]);
 // Charts rebuilt on the shared design-system panel (border/title live inside
 // the renderer). Grows as more kinds adopt the component set.
-const PANELED = new Set(['bar', 'funnel', 'line', 'retention', 'stacked', 'grouped', 'waterfall']);
+const PANELED = new Set(['bar', 'funnel', 'line', 'retention', 'stacked', 'grouped', 'waterfall', 'bignumber']);
 export function renderAgentVizSpec(spec, chartHint, cliWidth, lineOverrides = {}, extra = {}) {
     const objectSpec = normalizeSpec(spec);
     const chart = normalizeChart(chartHint ?? objectSpec.chart);

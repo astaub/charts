@@ -7,6 +7,10 @@
 // explicitly enabled, so the output survives an agent transcript, copy/paste,
 // and the web renderer.
 
+import { THEME, bold, dim, fg } from './theme.js';
+import { deltaBadge, inlineSparkline, panel } from './components.js';
+import { makeRenderCtx } from './render-context.js';
+
 const ESC = String.fromCharCode(27);
 const ANSI_PATTERN = new RegExp(`${ESC}\\[[0-?]*[ -/]*[@-~]`, 'g');
 // C0/C1 control characters and DEL, excluding the line breaks handled separately.
@@ -28,7 +32,9 @@ export interface BigNumberOptions {
   color?: BigNumberColorMode;
   isTTY?: boolean;
   env?: Record<string, string | undefined>;
-  /** Caption above the value. */
+  /** Tile heading (drawn into the panel border). Falls back to `label`. */
+  title?: string;
+  /** Caption / tile heading. */
   label?: string;
   /** Unit affixes for the value (and the previous-period value). */
   unit?: BigNumberUnit;
@@ -45,26 +51,46 @@ export interface BigNumberOptions {
   goodDirection?: 'up' | 'down';
 }
 
+// A composable KPI tile: heading (panel title) · big value · semantic delta ·
+// mini-sparkline. Built on the shared panel + the deltaBadge / inlineSparkline
+// growth primitives, so it reads as one product with the charts and drops into
+// a dashboard grid. Color degrades to clean monochrome.
 export function renderBigNumber(value: number, options: BigNumberOptions = {}): string {
   const width = clampWidth(options.width);
-  const colorEnabled = resolveColorEnabled(options);
-  const lines: string[] = [];
+  const ctx = makeRenderCtx(options);
+  const heading = sanitizeText(options.title ?? options.label ?? '');
 
-  const label = sanitizeText(options.label ?? '');
-  if (label.length > 0) lines.push(truncateLine(label, width));
-
-  lines.push(truncateLine(formatValue(value, options), width));
-
-  if (options.previous !== undefined && Number.isFinite(options.previous)) {
-    lines.push(truncateLine(formatDelta(value, options.previous, options, colorEnabled), width, colorEnabled));
+  // Line 1: the big value (bold) + the period-over-period delta beside it. The
+  // delta's color is semantic (good vs bad), honoring goodDirection.
+  const valueText = formatValue(value, options);
+  const bigValue = ctx.color ? bold(fg(THEME.ink, valueText)) : valueText;
+  const hasPrevious = options.previous !== undefined && Number.isFinite(options.previous);
+  const headParts = [bigValue];
+  if (hasPrevious) {
+    const previous = options.previous as number;
+    const change = previous === 0 ? Number.POSITIVE_INFINITY : (value - previous) / Math.abs(previous);
+    headParts.push(deltaBadge(ctx, change, { goodDirection: options.goodDirection ?? 'up' }));
   }
+  const body: string[] = [headParts.join('   ')];
 
+  // Line 2 (optional): mini-sparkline + a dim "vs <previous>" caption.
+  const captionParts: string[] = [];
   if (options.sparkline && options.sparkline.length > 0) {
-    const spark = renderSparkInline(options.sparkline, width);
-    if (spark.length > 0) lines.push(spark);
+    const spark = inlineSparkline(ctx, options.sparkline);
+    if (spark.length > 0) captionParts.push(spark);
   }
+  if (hasPrevious) {
+    const prevText = `vs ${formatValue(options.previous as number, options)}`;
+    captionParts.push(ctx.color ? dim(prevText) : prevText);
+  }
+  if (captionParts.length > 0) body.push(captionParts.join('   '));
 
-  return lines.join('\n');
+  return panel(ctx, {
+    body,
+    width,
+    accent: THEME.accent,
+    ...(heading ? { title: heading } : {}),
+  }).join('\n');
 }
 
 function formatValue(value: number, options: BigNumberOptions): string {
@@ -80,35 +106,8 @@ function safeAffix(value: string): string {
   return stripAnsi(value).replace(CONTROL_PATTERN, '').replace(/\r?\n/g, ' ');
 }
 
-function formatDelta(
-  value: number,
-  previous: number,
-  options: BigNumberOptions,
-  colorEnabled: boolean,
-): string {
-  const goodDirection = options.goodDirection ?? 'up';
-  const diff = value - previous;
-  const arrow = diff > 0 ? '▲' : diff < 0 ? '▼' : '→';
-  const pct = previous === 0 ? undefined : Math.abs(diff) / Math.abs(previous);
-  const pctText = pct === undefined ? 'n/a' : formatNumber(pct, 'percent');
-  const prevText = formatValue(previous, options);
-  const body = `${arrow} ${pctText} vs previous (${prevText})`;
-
-  if (!colorEnabled || diff === 0) return body;
-  const isGood = goodDirection === 'up' ? diff > 0 : diff < 0;
-  const code = isGood ? '32' : '31'; // green / red
-  return `${ESC}[${code}m${body}${ESC}[0m`;
-}
-
-function renderSparkInline(values: number[], width: number): string {
-  const finite = values.filter(Number.isFinite);
-  if (finite.length === 0) return '';
-  const min = Math.min(...finite);
-  const max = Math.max(...finite);
-  const sampled = sampleSeries(finite, Math.max(1, width));
-  const spark = sampled.map((value) => sparkChar(value, min, max)).join('');
-  return truncateLine(spark, width);
-}
+// The delta indicator and mini-sparkline now come from the shared growth
+// primitives (deltaBadge / inlineSparkline in ./components).
 
 // --------------------------------------------------------------------------
 // Self-contained helpers (modules in this package do not share a util file)
