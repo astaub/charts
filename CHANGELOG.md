@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+- feat(retention): rebuilt the cohort retention heatmap on the component system.
+  The wide layout is now a titled `panel` of **truecolor heat cells** — each
+  period cell is a solid background block keyed to its retention rate via a new
+  sequential `heat()` ramp (cold/dark → hot/bright blue), with the percentage in
+  light ink. Jagged cohorts (missing later periods) render as a centered dim dot
+  instead of a gap. Mono degrades to a shade glyph (`░▒▓█`) + percentage per
+  cell. Below 54 columns (or when the grid won't fit) it keeps the existing
+  per-cohort stacked list. New `retention-weekly` fixture; before/after freeze
+  shots in `docs/screenshots/`. `heat(t)` is exported from the package root.
+
 - feat(line, sparkline): rebuilt on the shared component system. The wide line
   chart now renders inside a titled `panel` with **per-series truecolor** (each
   series + its legend entry keyed to the categorical palette), a dim axis frame,

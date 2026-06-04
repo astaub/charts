@@ -25,6 +25,7 @@ FORCE_COLOR=1 bun src/cli.ts funnel fixtures/funnel-checkout.json > out.ans
 | `bar-revenue-by-plan.json` | bar | MRR by plan (includes a zero row) |
 | `line-weekly-active.json` | line | two-series trend (web vs mobile WAU) |
 | `line-latency.json` | line | single-series area chart (`options.area`) |
+| `retention-weekly.json` | retention | jagged weekly cohort heatmap |
 
 More kinds (line, sparkline, heatmap/retention, scatter, stacked, grouped,
 waterfall, dashboards) land alongside the renderers that adopt the shared

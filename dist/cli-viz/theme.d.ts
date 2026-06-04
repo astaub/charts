@@ -46,6 +46,8 @@ export declare function ramp(t: number): RGB;
  * descending bar chart or a draining funnel reads as a coherent gradient.
  */
 export declare function rampShade(index: number, count: number): RGB;
+/** Sample the heat ramp at t in [0,1] (0 = cold/dark, 1 = hot/bright). */
+export declare function heat(t: number): RGB;
 export declare const CATEGORICAL: RGB[];
 export declare function categorical(index: number): RGB;
 /** Left-anchored eighth blocks, index 0..8 (0 = empty cell, 8 = full block). */

@@ -1,0 +1,10 @@
+{
+  "chart": "retention",
+  "title": "Weekly retention",
+  "cohorts": [
+    { "label": "Jan W1", "size": 1240, "periods": [{ "label": "W0", "rate": 1 }, { "label": "W1", "rate": 0.62 }, { "label": "W2", "rate": 0.48 }, { "label": "W3", "rate": 0.41 }, { "label": "W4", "rate": 0.37 }] },
+    { "label": "Jan W2", "size": 1380, "periods": [{ "label": "W0", "rate": 1 }, { "label": "W1", "rate": 0.58 }, { "label": "W2", "rate": 0.44 }, { "label": "W3", "rate": 0.39 }] },
+    { "label": "Jan W3", "size": 1510, "periods": [{ "label": "W0", "rate": 1 }, { "label": "W1", "rate": 0.65 }, { "label": "W2", "rate": 0.50 }] },
+    { "label": "Jan W4", "size": 1620, "periods": [{ "label": "W0", "rate": 1 }, { "label": "W1", "rate": 0.60 }] }
+  ]
+}

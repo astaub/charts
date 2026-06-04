@@ -7,6 +7,7 @@ import {
   renderBarChart,
   renderFunnelBars,
   renderLineChart,
+  renderRetentionHeatmap,
   renderSparkline,
   resolveCliColorMode,
   resolveColor,
@@ -140,5 +141,30 @@ describe('design system — line / sparkline', () => {
     const colored = renderSparkline([1, 2, 3, 4, 5], { width: 40, color: 'always' });
     expect(colored).toContain(`${ESC}[38;2;`);
     expect(stripAnsi(colored)).toBe('Sparkline: _▂▄▆█ 1 → 5');
+  });
+});
+
+describe('design system — retention heatmap', () => {
+  const cohorts = [
+    { label: 'C1', size: 100, periods: [{ label: 'W0', rate: 1 }, { label: 'W1', rate: 0.6 }, { label: 'W2', rate: 0.3 }] },
+    { label: 'C2', size: 80, periods: [{ label: 'W0', rate: 1 }, { label: 'W1', rate: 0.5 }] },
+  ];
+
+  it('wide heatmap renders a titled panel with truecolor heat-filled cells', () => {
+    const out = renderRetentionHeatmap(cohorts, { width: 72, title: 'Retention', color: 'always' });
+    expect(stripAnsi(out.split('\n')[0] ?? '')).toContain('╭─ Retention');
+    // Each cell is a solid background-colored block (48;2;r;g;b) keyed to its rate.
+    expect(out).toContain(`${ESC}[38;2;`);
+    expect(out).toMatch(/48;2;\d+;\d+;\d+/);
+    // Higher retention is hotter/brighter than lower (compare blue channels).
+    const bgCodes = [...out.matchAll(/48;2;(\d+);(\d+);(\d+)/g)].map((m) => Number(m[3]));
+    expect(Math.max(...bgCodes)).toBeGreaterThan(Math.min(...bgCodes));
+  });
+
+  it('mono heatmap degrades to shade glyphs + percent; jagged periods show a dot', () => {
+    const out = renderRetentionHeatmap(cohorts, { width: 72, color: 'never' });
+    expect(out).not.toContain(ESC);
+    expect(out).toMatch(/[░▒▓█]/);
+    expect(out).toContain('·'); // C2 has no W2 cell
   });
 });

@@ -11,8 +11,8 @@ export { renderWaterfallChart, } from './waterfall.js';
 export { renderBigNumber, } from './bignumber.js';
 import { BrailleCanvas } from './braille.js';
 export { BrailleCanvas } from './braille.js';
-import { THEME, categorical, dim, fg, ramp, rampShade, resolveColor } from './theme.js';
-import { meterTable, panel } from './components.js';
+import { THEME, categorical, dim, fg, fgBg, heat, ramp, rampShade, resolveColor } from './theme.js';
+import { meterTable, padEnd, padStart, panel } from './components.js';
 export * from './theme.js';
 export { colorLabel, legend, meter, meterTable, panel, swatch, } from './components.js';
 export function renderSparkline(values, options = {}) {
@@ -510,7 +510,6 @@ export function renderRetentionHeatmap(cohorts, options = {}) {
     const width = clampWidth(options.width);
     if (cohorts.length === 0)
         return 'No retention cohorts.';
-    const colorEnabled = resolveColorEnabled(options);
     const cleanCohorts = cohorts.map((cohort) => ({
         label: sanitizeText(cohort.label),
         size: numeric(cohort.size),
@@ -523,14 +522,30 @@ export function renderRetentionHeatmap(cohorts, options = {}) {
     const periodLabels = retentionPeriodLabels(cleanCohorts);
     if (periodLabels.length === 0)
         return 'No retention periods.';
+    const ctx = makeRenderCtx(options);
     const labelWidth = Math.min(18, Math.max(6, longest(cleanCohorts.map((cohort) => cohort.label))));
-    const sizeWidth = Math.max(4, longest(cleanCohorts.map((cohort) => formatNumber(cohort.size))));
-    const periodWidths = periodLabels.map((periodLabel) => {
-        const values = cleanCohorts.map((cohort) => formatRetentionCell(findRetentionPeriod(cohort, periodLabel), cohort.size, false));
-        return Math.max(visualWidth(periodLabel), ...values.map(visualWidth));
-    });
-    const tableWidth = labelWidth + sizeWidth + periodWidths.reduce((sum, next) => sum + next, 0) + (periodLabels.length + 1) * 2;
-    if (width < NARROW_WIDTH || tableWidth > width) {
+    const sizeWidth = Math.max('Size'.length, longest(cleanCohorts.map((cohort) => formatNumber(cohort.size))));
+    // Retention of a cohort at a period (0..1), or undefined when the period is
+    // missing for that cohort (jagged cohorts are normal — recent cohorts have
+    // fewer observed periods).
+    const rateOf = (cohort, periodLabel) => {
+        const period = findRetentionPeriod(cohort, periodLabel);
+        if (!period)
+            return undefined;
+        return period.rate === undefined ? ratio(period.count ?? 0, cohort.size) : normalizePercent(period.rate);
+    };
+    // One uniform cell width across every period column so the grid reads as a
+    // clean heatmap. Mono cells are "<shade> NN%" (longest is 6), color cells just
+    // hold the centered percentage.
+    const pctStrings = cleanCohorts.flatMap((cohort) => periodLabels.map((periodLabel) => {
+        const rate = rateOf(cohort, periodLabel);
+        return rate === undefined ? '' : formatPercent(rate);
+    }));
+    const cellWidth = Math.max(6, longest(periodLabels), longest(pctStrings) + 2);
+    const gap = '  ';
+    const contentWidth = width - 4;
+    const tableWidth = labelWidth + 2 + sizeWidth + periodLabels.length * (2 + cellWidth);
+    if (width < NARROW_WIDTH || tableWidth > contentWidth) {
         return cleanCohorts
             .flatMap((cohort, index) => [
             ...(index > 0 ? [''] : []),
@@ -540,26 +555,40 @@ export function renderRetentionHeatmap(cohorts, options = {}) {
         ])
             .join('\n');
     }
-    const lines = [
-        [
-            padCell('Cohort', labelWidth, 'left'),
-            padCell('Size', sizeWidth, 'right'),
-            ...periodLabels.map((periodLabel, index) => padCell(periodLabel, periodWidths[index] ?? 0, 'right')),
-        ].join('  '),
-        [
-            repeat('-', labelWidth),
-            repeat('-', sizeWidth),
-            ...periodWidths.map((periodWidth) => repeat('-', periodWidth)),
-        ].join('  '),
-    ];
+    const center = (text, w) => {
+        const pad = Math.max(0, w - visualWidth(text));
+        const left = Math.floor(pad / 2);
+        return `${' '.repeat(left)}${text}${' '.repeat(pad - left)}`;
+    };
+    // A single cell: solid heat-colored block (color) or a shade glyph + percent
+    // (mono). Missing periods render as a dim centered dot.
+    const heatCell = (rate) => {
+        if (rate === undefined)
+            return ctx.color ? dim(center('·', cellWidth)) : center('·', cellWidth);
+        const pct = formatPercent(rate);
+        if (!ctx.color) {
+            const shade = HEAT_BUCKETS[Math.min(HEAT_BUCKETS.length - 1, Math.floor(rate * HEAT_BUCKETS.length))] ?? '░';
+            return center(`${shade} ${pct}`, cellWidth);
+        }
+        return fgBg(THEME.ink, heat(rate), center(pct, cellWidth));
+    };
+    const header = padEnd(ctx, 'Cohort', labelWidth) +
+        gap +
+        padStart(ctx, 'Size', sizeWidth) +
+        gap +
+        periodLabels.map((periodLabel) => center(periodLabel, cellWidth)).join(gap);
+    const body = [ctx.color ? dim(header) : header, ''];
     for (const cohort of cleanCohorts) {
-        lines.push([
-            padCell(cohort.label, labelWidth, 'left'),
-            padCell(formatNumber(cohort.size), sizeWidth, 'right'),
-            ...periodLabels.map((periodLabel, index) => padDisplayCell(formatRetentionCell(findRetentionPeriod(cohort, periodLabel), cohort.size, colorEnabled), periodWidths[index] ?? 0, 'right')),
-        ].join('  '));
+        const cells = periodLabels.map((periodLabel) => heatCell(rateOf(cohort, periodLabel))).join(gap);
+        body.push(`${padEnd(ctx, cohort.label, labelWidth)}${gap}${padStart(ctx, formatNumber(cohort.size), sizeWidth)}${gap}${cells}`);
     }
-    return lines.map((line) => (colorEnabled ? fitAnsiLine(line, width) : fitLine(line, width)).trimEnd()).join('\n');
+    return panel(ctx, {
+        body,
+        width,
+        accent: THEME.accent,
+        ...(options.title ? { title: sanitizeText(options.title) } : {}),
+        ...(options.subtitle ? { subtitle: sanitizeText(options.subtitle) } : {}),
+    }).join('\n');
 }
 export function stripAnsi(value) {
     return value.replace(ANSI_PATTERN, '');

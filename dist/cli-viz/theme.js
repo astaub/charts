@@ -111,6 +111,22 @@ export function rampShade(index, count) {
     // Keep within [0.05, 0.78] so even the last item stays legible (not too pale).
     return ramp(0.05 + (index / (count - 1)) * 0.73);
 }
+// Sequential HEAT ramp for filled cells (retention/heatmaps): cold/dark at t=0
+// → hot/bright blue at t=1. Same family as the accent so it stays on-brand,
+// but dark-to-bright (not deep-to-pale) so a solid grid of cells reads as heat.
+const HEAT_STOPS = [
+    rgb(32, 38, 58), // #20263a near-background (lowest)
+    rgb(38, 64, 140), // #26408c
+    rgb(56, 104, 224), // #3868e0
+    rgb(96, 150, 255), // #6096ff (hottest)
+];
+/** Sample the heat ramp at t in [0,1] (0 = cold/dark, 1 = hot/bright). */
+export function heat(t) {
+    const clamped = Math.max(0, Math.min(1, t));
+    const scaled = clamped * (HEAT_STOPS.length - 1);
+    const i = Math.min(HEAT_STOPS.length - 2, Math.floor(scaled));
+    return mix(HEAT_STOPS[i], HEAT_STOPS[i + 1], scaled - i);
+}
 // Coherent categorical hues for multi-series charts. Blue-led, evenly spread.
 export const CATEGORICAL = [
     rgb(61, 110, 255), // blue

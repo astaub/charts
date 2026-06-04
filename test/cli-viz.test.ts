@@ -1042,11 +1042,15 @@ describe('cli-viz primitives', () => {
       },
     ];
 
+    // Wide layout: a bordered panel of heat cells. Mono shows a shade glyph +
+    // percentage per cell; jagged/missing periods render as a centered dot.
     expect(renderRetentionHeatmap(cohorts, { width: 96 })).toMatchInlineSnapshot(`
-      "Cohort  Size            W0          W1          W2
-      ------  ----  ------------  ----------  ----------
-      Week 0   120  █ 120 (100%)  ▒ 68 (57%)  ▒ 49 (41%)
-      Week 1    80   █ 80 (100%)           -  ░ 20 (25%)"
+      "╭──────────────────────────────────────────────────────────────────────────────────────────────╮
+      │ Cohort  Size    W0      W1      W2                                                           │
+      │                                                                                              │
+      │ Week 0   120  █ 100%  ▒ 57%   ▒ 41%                                                          │
+      │ Week 1    80  █ 100%    ·     ░ 25%                                                          │
+      ╰──────────────────────────────────────────────────────────────────────────────────────────────╯"
     `);
     expect(renderRetentionHeatmap(cohorts, { width: 40 })).toMatchInlineSnapshot(`
       "1. Week 0
@@ -1063,7 +1067,7 @@ describe('cli-viz primitives', () => {
     `);
     expect(renderRetentionHeatmap([], { width: 54 })).toBe('No retention cohorts.');
     expect(renderRetentionHeatmap([{ label: 'Week 0', size: 10, periods: [] }], { width: 54 })).toBe('No retention periods.');
-    expect(renderRetentionHeatmap([{ label: 'Week 0', size: 100, periods: [{ label: 'W1', rate: 0.56 }] }], { width: 54 })).toContain('▒ - (56%)');
+    expect(renderRetentionHeatmap([{ label: 'Week 0', size: 100, periods: [{ label: 'W1', rate: 0.56 }] }], { width: 54 })).toContain('▒ 56%');
   });
 
   it('keeps default output ANSI-free and disables color for NO_COLOR, non-TTY auto, and color never', () => {

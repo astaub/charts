@@ -71,6 +71,14 @@ agentviz line fixtures/line-weekly-active.json --width 76 --linestyle braille  #
 agentviz line fixtures/line-latency.json --width 64                       # area fill
 ```
 
+**Retention** renders as a cohort heatmap: each period cell is a solid block
+shaded by its retention rate (truecolor `heat()` ramp on a TTY; `░▒▓█` shade
+glyphs when mono), with jagged cohorts showing a dot for unobserved periods.
+
+```sh
+agentviz retention fixtures/retention-weekly.json --width 78
+```
+
 ## CLI
 
 Pass a chart type and a JSON file, or pipe JSON through stdin.
