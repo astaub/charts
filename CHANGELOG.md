@@ -10,8 +10,8 @@
   heat cells, and accents, so any render is recognizably Staub out of the box.
   Tuned for both dark (sunset over a night ocean) and light (sunrise over a
   paler sea) backgrounds. The original blue family is preserved as the `classic`
-  theme; palettes are overridable via `--theme`, `setTheme()`, and
-  `registerTheme()`.
+  theme; palettes are overridable via the `--theme` CLI flag, the `palette`
+  render option, `setTheme()`, and `registerTheme()`.
 - docs: README gallery re-rendered on the `staub` theme and frozen with a
   monospace font; governance added (`AGENTS.md`, `CLAUDE.md`, `CONTRIBUTING.md`)
   plus CI (typecheck + build + test on Node 18/20).

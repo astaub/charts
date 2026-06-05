@@ -84,9 +84,9 @@ export function sanitizeText(value) {
  * adapts to a light/dark background with no per-kind change.
  */
 export function makeRenderCtx(options = {}) {
-    // Theme first (an unset theme resets to the brand default), then appearance —
-    // applyAppearance reads the active theme to pick the palette pair.
-    applyTheme(options.theme);
+    // Palette/theme first (an unset palette resets to the brand default), then
+    // appearance — applyAppearance reads the active theme to pick the palette pair.
+    applyTheme(options.palette);
     applyAppearance({ appearance: options.appearance, env: options.env });
     return {
         color: resolveColor({ color: options.color, isTTY: options.isTTY, env: options.env }),

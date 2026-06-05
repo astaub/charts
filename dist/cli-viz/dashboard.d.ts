@@ -24,7 +24,7 @@ export interface DashboardOptions {
     env?: Record<string, string | undefined>;
     /** Background appearance: 'light' | 'dark' | 'auto'. Default 'dark'. */
     appearance?: AppearanceMode;
-    /** Palette theme. Default 'staub' (sunset-on-ocean); 'classic' = blue family. */
-    theme?: ThemeName;
+    /** Palette (theme) name. Default 'staub' (sunset-on-ocean); 'classic' = blue family. */
+    palette?: ThemeName;
 }
 export declare function renderDashboard(rows: DashboardRow[], options?: DashboardOptions): string;

@@ -13,6 +13,7 @@ import {
   setTheme,
   type Palette,
 } from '../src/cli-viz/theme';
+import { renderLineChart } from '../src/cli-viz/index';
 
 // The brand theme system: `staub` (sunset-on-ocean) is the default so any
 // render is on-brand; `classic` (blue family) is preserved and selectable;
@@ -98,5 +99,23 @@ describe('theme registry — staub default + overridable palettes', () => {
     setTheme('test-mono');
     setAppearance('dark');
     expect(categorical(0)).toEqual(mono);
+  });
+
+  it('the per-render `palette` option selects the theme without leaking', () => {
+    const pts = (vals: number[]) => vals.map((value, i) => ({ label: `W${i + 1}`, value }));
+    const series = [
+      { label: 'Web', points: pts([10, 24, 31, 28, 40, 52, 61, 75]) },
+      { label: 'Mobile', points: pts([5, 9, 14, 22, 30, 38, 47, 59]) },
+    ];
+    // Default (no palette) is staub — coral lead series.
+    const staub = renderLineChart(series, { color: 'always', width: 80 });
+    expect(staub).toContain('38;2;255;111;97'); // staub coral
+    // Explicit classic palette renders the blue family.
+    const classic = renderLineChart(series, { color: 'always', width: 80, palette: 'classic' });
+    expect(classic).toContain('38;2;61;110;255'); // classic blue
+    // The classic render did not leave the module on classic — the next default
+    // render is staub again (palette option resets per render, like appearance).
+    const after = renderLineChart(series, { color: 'always', width: 80 });
+    expect(after).toContain('38;2;255;111;97');
   });
 });

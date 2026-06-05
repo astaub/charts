@@ -16,7 +16,9 @@ PR comment, or transcript without dumping raw CSV or hiding denominators.
 
 The default theme is **sunset-on-the-ocean** — warm coral through a horizon gold
 into deep ocean blue — so any chart reads as Staub out of the box. Pass
-`--theme classic` for the original blue family, or register your own.
+`--theme classic` (CLI) or `{ palette: "classic" }` (library) for the original
+blue family, `setTheme()` to change the process default, or `registerTheme()` to
+add your own.
 
 ## Gallery
 

@@ -85,8 +85,8 @@ export interface RenderContextOptions {
   env?: Record<string, string | undefined>;
   /** Background appearance: 'light' | 'dark' | 'auto'. Default 'dark'. */
   appearance?: AppearanceMode;
-  /** Palette theme. Default 'staub' (sunset-on-ocean); 'classic' = blue family. */
-  theme?: ThemeName;
+  /** Palette (theme) name. Default 'staub' (sunset-on-ocean); 'classic' = blue family. */
+  palette?: ThemeName;
 }
 
 /**
@@ -99,9 +99,9 @@ export interface RenderContextOptions {
  * adapts to a light/dark background with no per-kind change.
  */
 export function makeRenderCtx(options: RenderContextOptions = {}): RenderCtx {
-  // Theme first (an unset theme resets to the brand default), then appearance —
-  // applyAppearance reads the active theme to pick the palette pair.
-  applyTheme(options.theme);
+  // Palette/theme first (an unset palette resets to the brand default), then
+  // appearance — applyAppearance reads the active theme to pick the palette pair.
+  applyTheme(options.palette);
   applyAppearance({ appearance: options.appearance, env: options.env });
   return {
     color: resolveColor({ color: options.color, isTTY: options.isTTY, env: options.env }),

@@ -503,13 +503,13 @@ async function main() {
                 spec.options = { ...existing, appearance: resolveAppearance({ appearance: args.appearance ?? 'auto' }) };
             }
         }
-        // Fold the theme into the spec options too (default 'staub'), so the chosen
-        // palette round-trips through the integrity block exactly like color and
+        // Fold the chosen theme into the spec's `palette` option (default 'staub'),
+        // so it round-trips through the integrity block exactly like color and
         // appearance. An unset --theme leaves it to the staub default downstream.
         if (isRecord(spec) && args.theme !== undefined) {
             const existing = isRecord(spec.options) ? spec.options : {};
-            if (existing.theme === undefined) {
-                spec.options = { ...existing, theme: args.theme };
+            if (existing.palette === undefined) {
+                spec.options = { ...existing, palette: args.theme };
             }
         }
         process.stdout.write(`${renderChartsSpec(spec, args.chart, args.width, lineOverrides, extra)}\n`);

@@ -77,8 +77,8 @@ export interface CliVizOptions {
   env?: Record<string, string | undefined>;
   /** Background appearance the chart is tuned for: 'light' | 'dark' | 'auto'. Default 'dark'. */
   appearance?: AppearanceMode;
-  /** Palette theme. Default 'staub' (sunset-on-ocean); 'classic' = blue family. */
-  theme?: ThemeName;
+  /** Palette (theme) name. Default 'staub' (sunset-on-ocean); 'classic' = blue family. */
+  palette?: ThemeName;
   barStyle?: 'ascii' | 'blocks';
   /** Panel title drawn into the top border (paneled charts only). */
   title?: string;
@@ -881,9 +881,9 @@ export function resolveColorEnabled(options: CliVizOptions = {}): boolean {
 // these so chrome, color, and width math stay consistent across kinds.
 function makeRenderCtx(options: CliVizOptions): RenderCtx {
   // Activate the theme + light/dark palette here (the shared boundary) so every
-  // kind built on this context adapts with no per-kind change. Theme first (an
-  // unset theme resets to the brand default), then appearance.
-  applyTheme(options.theme);
+  // kind built on this context adapts with no per-kind change. Palette/theme
+  // first (an unset palette resets to the brand default), then appearance.
+  applyTheme(options.palette);
   applyAppearance({ appearance: options.appearance, env: options.env });
   return {
     color: resolveColor({ color: options.color as ColorMode | undefined, isTTY: options.isTTY, env: options.env }),

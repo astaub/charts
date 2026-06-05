@@ -631,9 +631,9 @@ export function resolveColorEnabled(options = {}) {
 // these so chrome, color, and width math stay consistent across kinds.
 function makeRenderCtx(options) {
     // Activate the theme + light/dark palette here (the shared boundary) so every
-    // kind built on this context adapts with no per-kind change. Theme first (an
-    // unset theme resets to the brand default), then appearance.
-    applyTheme(options.theme);
+    // kind built on this context adapts with no per-kind change. Palette/theme
+    // first (an unset palette resets to the brand default), then appearance.
+    applyTheme(options.palette);
     applyAppearance({ appearance: options.appearance, env: options.env });
     return {
         color: resolveColor({ color: options.color, isTTY: options.isTTY, env: options.env }),

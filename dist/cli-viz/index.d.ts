@@ -18,8 +18,8 @@ export interface CliVizOptions {
     env?: Record<string, string | undefined>;
     /** Background appearance the chart is tuned for: 'light' | 'dark' | 'auto'. Default 'dark'. */
     appearance?: AppearanceMode;
-    /** Palette theme. Default 'staub' (sunset-on-ocean); 'classic' = blue family. */
-    theme?: ThemeName;
+    /** Palette (theme) name. Default 'staub' (sunset-on-ocean); 'classic' = blue family. */
+    palette?: ThemeName;
     barStyle?: 'ascii' | 'blocks';
     /** Panel title drawn into the top border (paneled charts only). */
     title?: string;

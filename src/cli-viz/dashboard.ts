@@ -50,8 +50,8 @@ export interface DashboardOptions {
   env?: Record<string, string | undefined>;
   /** Background appearance: 'light' | 'dark' | 'auto'. Default 'dark'. */
   appearance?: AppearanceMode;
-  /** Palette theme. Default 'staub' (sunset-on-ocean); 'classic' = blue family. */
-  theme?: ThemeName;
+  /** Palette (theme) name. Default 'staub' (sunset-on-ocean); 'classic' = blue family. */
+  palette?: ThemeName;
 }
 
 const DEFAULT_WIDTH = 100;
@@ -126,7 +126,7 @@ function renderCell(panel: DashboardPanel, width: number, dash: DashboardOptions
     isTTY: dash.isTTY,
     env: dash.env,
     appearance: dash.appearance,
-    theme: dash.theme,
+    palette: dash.palette,
     ...(panel.title ? { title: panel.title } : {}),
   };
   const arr = <T,>(v: unknown): T[] => (Array.isArray(v) ? (v as T[]) : []);
