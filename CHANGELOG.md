@@ -18,6 +18,11 @@
 
 ## Unreleased
 
+- docs(governance): add **`CODE_OF_CONDUCT.md`** and **`SECURITY.md`** — closes
+  the OSS-kit governance gaps. The conduct standard applies equally to human and
+  agent contributors; the security policy routes private reports through GitHub
+  advisories (charts makes no network/file/shell calls, so the surface is just
+  terminal-escape injection + crafted-spec DoS).
 - feat(render): **`frame` option (default `true`) — bare, unpanelled bodies.**
   Every chart kind and the dashboard accept `frame: false`, which makes the
   shared `panel()` emit just the body — no rounded border, no embedded title —
