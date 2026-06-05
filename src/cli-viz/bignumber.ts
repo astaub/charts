@@ -49,6 +49,11 @@ export interface BigNumberOptions {
    * increase green; 'down' paints a decrease green (e.g. churn, latency).
    */
   goodDirection?: 'up' | 'down';
+  /**
+   * Self-frame in the panel box. Default true. `false` emits a bare body (no
+   * border, no title) for a host that draws its own chrome — avoids double-framing.
+   */
+  frame?: boolean;
 }
 
 // A composable KPI tile: heading (panel title) · big value · semantic delta ·

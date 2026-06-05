@@ -25,6 +25,12 @@ export interface CliVizOptions {
     title?: string;
     /** Dim subtitle drawn just under the title. */
     subtitle?: string;
+    /**
+     * Self-frame the chart in its rounded panel box. Default true. Set `false` to
+     * emit a bare, unpanelled body — no border, no title — for a host that draws
+     * its own chrome (e.g. a themed card frame). Prevents double-framing.
+     */
+    frame?: boolean;
 }
 export interface SparklineOptions extends CliVizOptions {
     label?: string;

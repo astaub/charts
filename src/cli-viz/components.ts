@@ -30,6 +30,14 @@ export interface RenderCtx {
   visualWidth: (value: string) => number;
   /** Truncate to a display width, ANSI-aware (from index.ts). */
   truncate: (value: string, width: number) => string;
+  /**
+   * Whether each chart self-frames in its rounded panel box. Default (undefined
+   * or true) draws the full panel. `false` makes {@link panel} emit UNPANELLED
+   * bare bodies — no border, no title — so a host that draws its own chrome
+   * (e.g. a themed "card" frame) wraps the body directly instead of boxing an
+   * already-boxed chart (which would double-frame: a box inside a box).
+   */
+  frame?: boolean;
 }
 
 // ---------------------------------------------------------------------------
@@ -304,6 +312,28 @@ const PAD = 1; // columns of padding inside the vertical borders
 export function panel(ctx: RenderCtx, opts: PanelOptions): string[] {
   const accent = opts.accent ?? THEME.accent;
   const inner = Math.max(1, opts.width - 2 - PAD * 2);
+
+  // Bare mode (frame off): emit the inner content with NO border, title, or
+  // padding columns. The host (e.g. Staub's themed frameTile) draws its own
+  // chrome around these bodies, so self-paneling here would double-frame (a box
+  // inside a box). Subtitle + footer still render as dim plain lines — they are
+  // body content, not part of the box border the host is replacing.
+  if (ctx.frame === false) {
+    const bare: string[] = [];
+    if (opts.subtitle) {
+      const sub = ctx.truncate(opts.subtitle, inner);
+      bare.push(ctx.color ? mutedText(sub) : sub);
+      bare.push('');
+    }
+    for (const line of opts.body) bare.push(line);
+    if (opts.footer) {
+      bare.push('');
+      const foot = ctx.truncate(opts.footer, inner);
+      bare.push(ctx.color ? mutedText(foot) : foot);
+    }
+    return bare;
+  }
+
   const horiz = (text: string) => (ctx.color ? fg(accent, text) : text);
   const chrome = (text: string) => (ctx.color ? mutedText(text) : text);
 

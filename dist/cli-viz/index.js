@@ -639,6 +639,7 @@ function makeRenderCtx(options) {
         color: resolveColor({ color: options.color, isTTY: options.isTTY, env: options.env }),
         visualWidth,
         truncate: truncateLine,
+        frame: options.frame ?? true,
     };
 }
 function renderBarChartBlocks(rows, fallbackDenominator, width) {

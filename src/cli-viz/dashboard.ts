@@ -52,6 +52,11 @@ export interface DashboardOptions {
   appearance?: AppearanceMode;
   /** Palette (theme) name. Default 'staub' (sunset-on-ocean); 'classic' = blue family. */
   palette?: ThemeName;
+  /**
+   * Self-frame each cell in its panel box. Default true. `false` emits bare,
+   * unpanelled cell bodies so a host can draw its own chrome (avoids double-framing).
+   */
+  frame?: boolean;
 }
 
 const DEFAULT_WIDTH = 100;
@@ -127,6 +132,7 @@ function renderCell(panel: DashboardPanel, width: number, dash: DashboardOptions
     env: dash.env,
     appearance: dash.appearance,
     palette: dash.palette,
+    frame: dash.frame,
     ...(panel.title ? { title: panel.title } : {}),
   };
   const arr = <T,>(v: unknown): T[] => (Array.isArray(v) ? (v as T[]) : []);

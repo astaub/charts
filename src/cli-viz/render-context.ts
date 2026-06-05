@@ -87,6 +87,11 @@ export interface RenderContextOptions {
   appearance?: AppearanceMode;
   /** Palette (theme) name. Default 'staub' (sunset-on-ocean); 'classic' = blue family. */
   palette?: ThemeName;
+  /**
+   * Self-frame each chart in its panel box. Default true. `false` emits bare,
+   * unpanelled bodies so a host can draw its own chrome (avoids double-framing).
+   */
+  frame?: boolean;
 }
 
 /**
@@ -107,5 +112,6 @@ export function makeRenderCtx(options: RenderContextOptions = {}): RenderCtx {
     color: resolveColor({ color: options.color, isTTY: options.isTTY, env: options.env }),
     visualWidth,
     truncate: truncateLine,
+    frame: options.frame ?? true,
   };
 }

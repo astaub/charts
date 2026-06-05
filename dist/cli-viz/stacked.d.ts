@@ -17,5 +17,7 @@ export interface StackedBarChartOptions {
     color?: 'never' | 'auto' | 'always';
     isTTY?: boolean;
     env?: Record<string, string | undefined>;
+    /** Self-frame in the panel box. Default true; `false` emits a bare body. */
+    frame?: boolean;
 }
 export declare function renderStackedBarChart(buckets: StackedBarBucketDatum[], options?: StackedBarChartOptions): string;

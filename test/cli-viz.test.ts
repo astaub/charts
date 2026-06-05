@@ -968,6 +968,25 @@ describe('cli-viz primitives', () => {
     expect(renderBarChart([{ label: 'Zero baseline', value: 10, denominator: 0 }], { width: 54 })).toContain('0%');
   });
 
+  it('frame:false emits a bare body — no panel box (host draws its own chrome)', () => {
+    const rows = [
+      { label: 'Organic', value: 320, denominator: 512 },
+      { label: 'BD referral', value: 118, denominator: 512 },
+    ];
+    const framed = renderBarChart(rows, { width: 80 });
+    const bare = renderBarChart(rows, { width: 80, frame: false });
+    const BOX_RX = /[╭╮╰╯│─]/;
+    // Default still self-frames (the rounded box), so the bare mode is the change.
+    expect(BOX_RX.test(framed)).toBe(true);
+    expect(BOX_RX.test(bare)).toBe(false);
+    // The body content survives — same data, just no border or title chrome.
+    expect(bare).toContain('Organic');
+    expect(bare).toContain('320');
+    expect(bare).toContain('Value');
+    // No leading/trailing border rows: first line is the dim column header.
+    expect(bare.split('\n')[0]).toContain('Value');
+  });
+
   it('renders funnel bars with retention and from-previous percentages', () => {
     const steps = [
       { label: 'Visited pricing page', count: 1000 },

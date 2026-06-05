@@ -92,5 +92,6 @@ export function makeRenderCtx(options = {}) {
         color: resolveColor({ color: options.color, isTTY: options.isTTY, env: options.env }),
         visualWidth,
         truncate: truncateLine,
+        frame: options.frame ?? true,
     };
 }

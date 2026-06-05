@@ -18,6 +18,13 @@
 
 ## Unreleased
 
+- feat(render): **`frame` option (default `true`) — bare, unpanelled bodies.**
+  Every chart kind and the dashboard accept `frame: false`, which makes the
+  shared `panel()` emit just the body — no rounded border, no embedded title —
+  instead of a self-contained box. This is for a host that draws its own chrome
+  (e.g. a themed "card" frame): without it, wrapping an already-boxed chart
+  double-frames it (a box inside a box). Threaded once through the render
+  context, so all kinds honor it uniformly; the default is unchanged.
 - feat(dashboard): **terminal dashboards** — compose KPI tiles + charts into one
   multi-panel grid. New `cli-viz/dashboard.ts` (`renderDashboard`) + a
   `dashboard` CLI kind + `@staub/charts/dashboard` subpath export. A spec is

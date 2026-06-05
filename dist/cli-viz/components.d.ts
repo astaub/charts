@@ -6,6 +6,14 @@ export interface RenderCtx {
     visualWidth: (value: string) => number;
     /** Truncate to a display width, ANSI-aware (from index.ts). */
     truncate: (value: string, width: number) => string;
+    /**
+     * Whether each chart self-frames in its rounded panel box. Default (undefined
+     * or true) draws the full panel. `false` makes {@link panel} emit UNPANELLED
+     * bare bodies — no border, no title — so a host that draws its own chrome
+     * (e.g. a themed "card" frame) wraps the body directly instead of boxing an
+     * already-boxed chart (which would double-frame: a box inside a box).
+     */
+    frame?: boolean;
 }
 export declare function padEnd(ctx: RenderCtx, value: string, width: number): string;
 export declare function padStart(ctx: RenderCtx, value: string, width: number): string;

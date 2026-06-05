@@ -26,5 +26,10 @@ export interface DashboardOptions {
     appearance?: AppearanceMode;
     /** Palette (theme) name. Default 'staub' (sunset-on-ocean); 'classic' = blue family. */
     palette?: ThemeName;
+    /**
+     * Self-frame each cell in its panel box. Default true. `false` emits bare,
+     * unpanelled cell bodies so a host can draw its own chrome (avoids double-framing).
+     */
+    frame?: boolean;
 }
 export declare function renderDashboard(rows: DashboardRow[], options?: DashboardOptions): string;

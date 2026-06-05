@@ -23,6 +23,8 @@ export interface WaterfallChartOptions {
   color?: 'never' | 'auto' | 'always';
   isTTY?: boolean;
   env?: Record<string, string | undefined>;
+  /** Self-frame in the panel box. Default true; `false` emits a bare body. */
+  frame?: boolean;
 }
 
 // Semantic color per step kind: gains are positive (green), drops negative
