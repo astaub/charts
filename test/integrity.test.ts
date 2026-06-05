@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { computeHash, verifyIntegrity, wrapWithIntegrity } from '../src/integrity';
-import { buildCanonicalSpec, parseAgentVizArgs, renderAgentVizSpec } from '../src/cli';
+import { buildCanonicalSpec, parseChartsArgs, renderChartsSpec } from '../src/cli';
 
 // A trivial deterministic renderer used to exercise integrity in isolation
 // from the real chart renderers. It returns the spec's `body` field verbatim
@@ -21,9 +21,9 @@ describe('integrity sentinel', () => {
       version: '9.9.9',
       spec: { body: 'chart body line 1\nchart body line 2' },
     });
-    expect(wrapped).toMatch(/^‹‹‹agentviz\/9\.9\.9 chart:line sha256:[a-f0-9]{64} spec:[A-Za-z0-9+/=]+›››\n/);
+    expect(wrapped).toMatch(/^‹‹‹charts\/9\.9\.9 chart:line sha256:[a-f0-9]{64} spec:[A-Za-z0-9+/=]+›››\n/);
     expect(wrapped).toContain('chart body line 1\nchart body line 2');
-    expect(wrapped.endsWith('\n‹‹‹/agentviz›››')).toBe(true);
+    expect(wrapped.endsWith('\n‹‹‹/charts›››')).toBe(true);
   });
 
   it('verify returns OK for an unmodified marker block (with rerender)', () => {
@@ -100,13 +100,13 @@ describe('integrity sentinel', () => {
     expect(result.reason).toMatch(/re-rendered body/);
   });
 
-  it('verify reports no-marker when no agentviz block is present', () => {
+  it('verify reports no-marker when no charts block is present', () => {
     const result = verifyIntegrity('just a plain string, no marker here', stubRenderer);
     expect(result.status).toBe('no-marker');
   });
 
   it('verify reports malformed on a truncated header', () => {
-    const result = verifyIntegrity('‹‹‹agentviz/1.0.0 chart:line and then nothing', stubRenderer);
+    const result = verifyIntegrity('‹‹‹charts/1.0.0 chart:line and then nothing', stubRenderer);
     expect(result.status).toBe('malformed');
   });
 
@@ -119,7 +119,7 @@ describe('integrity sentinel', () => {
       spec: { body: 'body' },
     });
     // Inject an extra trailing newline before the close marker.
-    const tampered = wrapped.replace('\n‹‹‹/agentviz›››', '\n\n‹‹‹/agentviz›››');
+    const tampered = wrapped.replace('\n‹‹‹/charts›››', '\n\n‹‹‹/charts›››');
     // The body now ends with a newline that wasn't there at hash time, so
     // the body-slice will be 'body\n' instead of 'body', and the hash will
     // mismatch (caught at the hash step, before rerender).
@@ -163,9 +163,9 @@ describe('integrity sentinel', () => {
   });
 });
 
-describe('agentviz cli integrity flag', () => {
+describe('charts cli integrity flag', () => {
   it('parses --integrity', () => {
-    expect(parseAgentVizArgs(['line', 'chart.json', '--integrity'])).toEqual({
+    expect(parseChartsArgs(['line', 'chart.json', '--integrity'])).toEqual({
       chart: 'line',
       file: 'chart.json',
       integrity: true,
@@ -173,17 +173,17 @@ describe('agentviz cli integrity flag', () => {
   });
 
   it('parses the verify subcommand with a file path', () => {
-    expect(parseAgentVizArgs(['verify', 'out.txt'])).toEqual({
+    expect(parseChartsArgs(['verify', 'out.txt'])).toEqual({
       verify: true,
       file: 'out.txt',
     });
   });
 
   it('parses the verify subcommand without a file path', () => {
-    expect(parseAgentVizArgs(['verify'])).toEqual({ verify: true });
+    expect(parseChartsArgs(['verify'])).toEqual({ verify: true });
   });
 
-  it('renderAgentVizSpec without --integrity is byte-identical to prior behavior', () => {
+  it('renderChartsSpec without --integrity is byte-identical to prior behavior', () => {
     const spec = {
       chart: 'funnel' as const,
       steps: [
@@ -191,13 +191,13 @@ describe('agentviz cli integrity flag', () => {
         { label: 'Paid', count: 18 },
       ],
     };
-    const plain = renderAgentVizSpec(spec, undefined, 64);
-    const explicit = renderAgentVizSpec(spec, undefined, 64, {}, { integrity: false });
+    const plain = renderChartsSpec(spec, undefined, 64);
+    const explicit = renderChartsSpec(spec, undefined, 64, {}, { integrity: false });
     expect(explicit).toBe(plain);
-    expect(plain.startsWith('‹‹‹agentviz')).toBe(false);
+    expect(plain.startsWith('‹‹‹charts')).toBe(false);
   });
 
-  it('renderAgentVizSpec with integrity:true wraps the output in a verifiable marker block', () => {
+  it('renderChartsSpec with integrity:true wraps the output in a verifiable marker block', () => {
     const spec = {
       chart: 'funnel' as const,
       steps: [
@@ -205,12 +205,12 @@ describe('agentviz cli integrity flag', () => {
         { label: 'Paid', count: 18 },
       ],
     };
-    const wrapped = renderAgentVizSpec(spec, undefined, 64, {}, { integrity: true, version: '9.9.9' });
-    expect(wrapped.startsWith('‹‹‹agentviz/9.9.9 chart:funnel sha256:')).toBe(true);
-    expect(wrapped.endsWith('‹‹‹/agentviz›››')).toBe(true);
+    const wrapped = renderChartsSpec(spec, undefined, 64, {}, { integrity: true, version: '9.9.9' });
+    expect(wrapped.startsWith('‹‹‹charts/9.9.9 chart:funnel sha256:')).toBe(true);
+    expect(wrapped.endsWith('‹‹‹/charts›››')).toBe(true);
     // Verify with the real renderer must pass — re-rendering the embedded
     // spec produces a byte-exact match of the body inside the block.
-    const verified = verifyIntegrity(wrapped, (s) => renderAgentVizSpec(s));
+    const verified = verifyIntegrity(wrapped, (s) => renderChartsSpec(s));
     expect(verified.status).toBe('ok');
     expect(verified.chart).toBe('funnel');
   });
@@ -229,18 +229,18 @@ describe('agentviz cli integrity flag', () => {
         },
       ],
     };
-    const wrapped = renderAgentVizSpec(
+    const wrapped = renderChartsSpec(
       spec,
       undefined,
       72,
       { vlines: [{ at: 'Feb', label: 'launch' }], footer: 'queried 2026-05-19' },
       { integrity: true, version: '0.1.3' },
     );
-    const verified = verifyIntegrity(wrapped, (s) => renderAgentVizSpec(s));
+    const verified = verifyIntegrity(wrapped, (s) => renderChartsSpec(s));
     expect(verified.status).toBe('ok');
   });
 
-  it('detects hand-editing the visible chart body produced through renderAgentVizSpec', () => {
+  it('detects hand-editing the visible chart body produced through renderChartsSpec', () => {
     const spec = {
       chart: 'line' as const,
       series: [
@@ -253,16 +253,16 @@ describe('agentviz cli integrity flag', () => {
         },
       ],
     };
-    const wrapped = renderAgentVizSpec(spec, undefined, 72, {}, { integrity: true, version: '0.1.3' });
+    const wrapped = renderChartsSpec(spec, undefined, 72, {}, { integrity: true, version: '0.1.3' });
     // Simulate the 2026-05-18 incident: agent adds an arrow annotation
     // inside the chart body. The hash must catch this.
     const fakeEdited = wrapped.replace('Legend', '← FEED-AS-HOME Legend');
-    const result = verifyIntegrity(fakeEdited, (s) => renderAgentVizSpec(s));
+    const result = verifyIntegrity(fakeEdited, (s) => renderChartsSpec(s));
     expect(result.status).toBe('tampered');
   });
 
-  it('detects the full forgery attack against renderAgentVizSpec output', () => {
-    // Realistic scenario: agent runs `agentviz line --integrity`, gets a
+  it('detects the full forgery attack against renderChartsSpec output', () => {
+    // Realistic scenario: agent runs `charts line --integrity`, gets a
     // valid block, then hand-edits the body AND recomputes the hash using
     // the same hash routine. Without rerender this passes; with rerender,
     // the embedded spec re-renders to the original body and mismatch is
@@ -273,14 +273,14 @@ describe('agentviz cli integrity flag', () => {
         { label: 'rate', points: [{ label: 'Jan', value: 1 }, { label: 'Feb', value: 2 }] },
       ],
     };
-    const wrapped = renderAgentVizSpec(spec, undefined, 72, {}, { integrity: true, version: '0.1.3' });
+    const wrapped = renderChartsSpec(spec, undefined, 72, {}, { integrity: true, version: '0.1.3' });
     const specMatch = wrapped.match(/spec:([A-Za-z0-9+/=]+)›››/);
     expect(specMatch).not.toBeNull();
     const specB64 = specMatch![1];
     const embeddedSpec = JSON.parse(Buffer.from(specB64, 'base64').toString('utf8'));
     const headerEnd = wrapped.indexOf('›››');
     const bodyStart = headerEnd + 3 + 1; // past '›››' + newline
-    const closeIdx = wrapped.indexOf('\n‹‹‹/agentviz›››');
+    const closeIdx = wrapped.indexOf('\n‹‹‹/charts›››');
     const originalBody = wrapped.slice(bodyStart, closeIdx);
     const forgedBody = originalBody.replace(/Jan/, 'FAKE');
     const forgedHash = computeHash({
@@ -297,7 +297,7 @@ describe('agentviz cli integrity flag', () => {
     // spec was not changed, only the visible body and the hash. The real
     // renderer re-renders from the spec and produces the original body,
     // which does not match the forged body.
-    const result = verifyIntegrity(forged, (s) => renderAgentVizSpec(s));
+    const result = verifyIntegrity(forged, (s) => renderChartsSpec(s));
     expect(result.status).toBe('tampered');
   });
 });
@@ -310,11 +310,11 @@ describe('buildCanonicalSpec', () => {
         { label: 'a', points: [{ label: 'x', value: 1 }, { label: 'y', value: 2 }] },
       ],
     };
-    const body1 = renderAgentVizSpec(spec, 'line', 72, { footer: 'q' });
+    const body1 = renderChartsSpec(spec, 'line', 72, { footer: 'q' });
     const canonical = buildCanonicalSpec(spec as never, 'line', 72, { footer: 'q' });
-    // Passing the canonical spec back through renderAgentVizSpec without
+    // Passing the canonical spec back through renderChartsSpec without
     // any chartHint/cliWidth/lineOverrides must produce the same body.
-    const body2 = renderAgentVizSpec(canonical);
+    const body2 = renderChartsSpec(canonical);
     expect(body2).toBe(body1);
   });
 });

@@ -70,7 +70,7 @@ describe('renderBigNumber', () => {
     // The dangerous bytes — the ESC introducer and BEL terminator that make an
     // OSC/CSI sequence executable — must be gone. (Leftover printable text like
     // "]8;;" is harmless once ESC is stripped.) The only ESC permitted is
-    // agentviz's own color wrapper, which is green (`[32m`), never the injected
+    // charts's own color wrapper, which is green (`[32m`), never the injected
     // red (`[31m`) or OSC (`]8`).
     expect(out).not.toContain(`${esc}]8`);
     expect(out).not.toContain(`${esc}[31m`);

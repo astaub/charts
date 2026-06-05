@@ -14,7 +14,7 @@
 # Requires `freeze` (https://github.com/charmbracelet/freeze). Block/box glyphs
 # (█ ░ │) MUST be rendered with a uniform-advance font or they drift and the
 # panel border looks ragged — so we pin --font.family Menlo. (freeze cannot set
-# a default foreground, so agentviz colors all primary text explicitly in light
+# a default foreground, so charts colors all primary text explicitly in light
 # mode; the background flag is all freeze needs from us here.)
 #
 # Usage:  scripts/qa-gallery.sh            # regenerate the whole gallery
@@ -27,7 +27,7 @@ OUT="$ROOT/docs/screenshots"
 FIXTURES="$ROOT/fixtures"
 
 command -v freeze >/dev/null || { echo "error: 'freeze' not found (brew install charmbracelet/tap/freeze)"; exit 1; }
-[ -f "$CLI" ] || { echo "building agentviz…"; (cd "$ROOT" && npm run build >/dev/null); }
+[ -f "$CLI" ] || { echo "building charts…"; (cd "$ROOT" && npm run build >/dev/null); }
 mkdir -p "$OUT"
 
 FONT=(--font.family "Menlo" --font.size 14 --padding 20 --window=false)
@@ -58,7 +58,7 @@ shoot() { # kind appearance bg width txt
   # --language ansi: render the captured ANSI. --font.family (a MONOSPACE font
   # with box/block glyph coverage) is REQUIRED — freeze's default font has
   # non-uniform glyph advance, so the panel's right border drifts (the left,
-  # being at column 0, stays put). agentviz pads every row to one identical
+  # being at column 0, stays put). charts pads every row to one identical
   # visible width (asserted in the test suite); a uniform-advance font renders
   # that as one clean column.
   freeze "/tmp/qa-$kind.ans" --language ansi -o "$png" --background "$bg" "${FONT[@]}"

@@ -86,8 +86,12 @@ function mix(a, b, t) {
         b: clamp(a.b + (b.b - a.b) * t),
     };
 }
+// ── classic theme ──────────────────────────────────────────────────────────
+// The original blue-family palettes, preserved verbatim as the `classic` theme
+// so the prior look is never lost — `staub` is the default, classic is one
+// `--theme classic` (or setTheme('classic')) away.
 // Tuned for DARK backgrounds (the original, unchanged values — no regression).
-const DARK_PALETTE = {
+const CLASSIC_DARK_PALETTE = {
     accent: rgb(61, 110, 255), // #3d6eff
     muted: rgb(96, 105, 130), // #606982
     track: rgb(54, 60, 82), // #363c52
@@ -129,7 +133,7 @@ const DARK_PALETTE = {
 //    filled dark block), rising to a vivid mid-blue — dark ink reads across it;
 //  · the track is a faint pale gray that reads as a subtle channel on white;
 //  · green/red/amber are deepened so the semantic accents pop on white.
-const LIGHT_PALETTE = {
+const CLASSIC_LIGHT_PALETTE = {
     accent: rgb(40, 82, 224), // #2852e0 — deep royal blue, strong on white
     muted: rgb(74, 82, 104), // #4a5268 — dark slate, real contrast on white
     track: rgb(212, 219, 233), // #d4dbe9 — faint pale channel on white
@@ -166,16 +170,149 @@ const LIGHT_PALETTE = {
         rgb(198, 59, 134), // pink
     ],
 };
-const PALETTES = { dark: DARK_PALETTE, light: LIGHT_PALETTE };
-// The active background appearance. Module-level on purpose: a render pass is
-// synchronous, and every kind reads the active palette through THEME/ramp/etc.,
-// so flipping this once at the render boundary adapts the whole system.
+// ── staub theme (default) ────────────────────────────────────────────────────
+// Staub's brand: SUNSET ON THE OCEAN. Warm coral / sunset tones meeting a deep
+// ocean blue at the horizon. The sequential ramp is that horizon literalized —
+// coral → sunset gold → teal → ocean blue — so every bar, line, and funnel reads
+// as one Staub gradient. Semantic accents (positive/negative) and the faint
+// track channel are kept neutral and shared with `classic` (a sea-green and a
+// sunset-rose already sit inside the palette), so good/bad never gets lost in
+// the brand hues.
+//
+// Two tunings, same family: DARK is sunset over a night ocean; LIGHT is sunrise
+// over a paler sea, deepened so coral/ocean read on white (the #13 light-bg
+// lesson) — accent/ink go deep, the ramp is deepened, the heat ramp's lowest
+// cell sits ≈ the white background (a cold cell reads as empty, not a dark block).
+// Sunset over a night ocean.
+const STAUB_DARK_PALETTE = {
+    accent: rgb(255, 111, 97), // #ff6f61 — Staub coral, the brand signature
+    muted: rgb(120, 134, 158), // #78869e — dusk slate (ocean at twilight)
+    track: rgb(54, 60, 82), // #363c52 — deep channel (shared w/ classic; reads as empty)
+    ink: rgb(255, 244, 238), // #fff4ee — warm white, on coral/heat fills
+    text: rgb(255, 244, 238), // unused on dark (bodyText leaves text uncolored)
+    positive: rgb(45, 198, 130), // #2dc682 — sea green
+    negative: rgb(240, 80, 110), // #f0506e — sunset rose
+    warn: rgb(245, 176, 66), // #f5b042 — sunset gold
+    // The horizon: coral → sunset gold → teal → ocean blue. ramp(0) is coral.
+    rampStops: [
+        rgb(255, 111, 97), // #ff6f61 coral (deepest/boldest)
+        rgb(255, 150, 99), // #ff9663 sunset orange
+        rgb(247, 178, 103), // #f7b267 horizon gold
+        rgb(91, 163, 184), // #5ba3b8 teal sea
+        rgb(47, 111, 166), // #2f6fa6 ocean blue
+    ],
+    // Cold deep-ocean (≈ dark bg) → hot coral. Warm-white ink reads on every cell.
+    heatStops: [
+        rgb(30, 42, 60), // #1e2a3c near-background deep ocean (lowest)
+        rgb(38, 90, 120), // #265a78 ocean blue
+        rgb(217, 138, 94), // #d98a5e warm sand
+        rgb(255, 122, 89), // #ff7a59 hot coral (hottest)
+    ],
+    // Coral-led so a multi-series chart is unmistakably Staub, spread across the
+    // full sunset-to-ocean arc.
+    categorical: [
+        rgb(255, 111, 97), // coral
+        rgb(255, 158, 94), // sunset orange
+        rgb(245, 196, 94), // sun gold
+        rgb(79, 176, 160), // sea teal
+        rgb(63, 143, 191), // ocean blue
+        rgb(138, 111, 174), // dusk violet
+        rgb(240, 143, 176), // sunset pink
+        rgb(46, 116, 181), // deep blue
+    ],
+};
+// Sunrise over a paler sea — deepened so coral/ocean read on white.
+const STAUB_LIGHT_PALETTE = {
+    accent: rgb(214, 77, 60), // #d64d3c — deep coral, strong on white
+    muted: rgb(92, 84, 94), // #5c545e — warm slate, real contrast on white
+    track: rgb(212, 219, 233), // #d4dbe9 — faint pale channel (shared w/ classic)
+    ink: rgb(38, 28, 30), // #261c1e — deep warm near-black for on-fill labels
+    text: rgb(40, 32, 38), // #282026 — primary body text, strong on white
+    positive: rgb(18, 138, 82), // #128a52 — deep sea green
+    negative: rgb(208, 42, 74), // #d02a4a — deep sunset red
+    warn: rgb(176, 108, 16), // #b06c10 — deep amber
+    // Same horizon, deepened: even the ocean end stays a clear blue on white.
+    rampStops: [
+        rgb(201, 69, 58), // #c9453a deep coral (deepest)
+        rgb(224, 116, 74), // #e0744a coral-orange
+        rgb(199, 138, 40), // #c78a28 deep gold
+        rgb(63, 138, 168), // #3f8aa8 teal-ocean
+        rgb(42, 106, 158), // #2a6a9e ocean blue (still clear on white)
+    ],
+    // Faint warm tint (a low cell reads as tinted, not blank) → hot coral; deep
+    // warm ink reads on the hottest cell.
+    heatStops: [
+        rgb(235, 225, 220), // #ebe1dc faint warm tint (lowest)
+        rgb(243, 195, 168), // #f3c3a8 warm sand
+        rgb(232, 149, 106), // #e8956a coral-orange
+        rgb(214, 90, 60), // #d65a3c hot coral (hottest)
+    ],
+    categorical: [
+        rgb(214, 77, 60), // coral
+        rgb(224, 116, 74), // sunset orange
+        rgb(199, 138, 30), // sun gold
+        rgb(31, 138, 134), // sea teal
+        rgb(42, 106, 158), // ocean blue
+        rgb(111, 79, 150), // dusk violet
+        rgb(200, 90, 134), // sunset pink
+        rgb(31, 95, 158), // deep blue
+    ],
+};
+/** The name used when no theme is selected (and the fallback for unknown names). */
+export const DEFAULT_THEME = 'staub';
+const THEMES = {
+    staub: { dark: STAUB_DARK_PALETTE, light: STAUB_LIGHT_PALETTE },
+    classic: { dark: CLASSIC_DARK_PALETTE, light: CLASSIC_LIGHT_PALETTE },
+};
+// The active theme + background appearance. Module-level on purpose: a render
+// pass is synchronous, and every kind reads the active palette through
+// THEME/ramp/etc., so flipping these once at the render boundary adapts the
+// whole system. The default theme is `staub`, so an unconfigured render is
+// already on-brand.
+let activeTheme = DEFAULT_THEME;
 let activeAppearance = 'dark';
-let activePalette = DARK_PALETTE;
+let activePalette = THEMES[DEFAULT_THEME].dark;
+/** Resolve the palette pair for a theme name, falling back to the default. */
+function themePair(name) {
+    return THEMES[name] ?? THEMES[DEFAULT_THEME];
+}
 /** Switch the active palette. Called at the render boundary, not per kind. */
 export function setAppearance(appearance) {
     activeAppearance = appearance;
-    activePalette = PALETTES[appearance];
+    activePalette = themePair(activeTheme)[appearance];
+}
+/** Switch the active theme, keeping the current appearance. */
+export function setTheme(name) {
+    activeTheme = THEMES[name] ? name : DEFAULT_THEME;
+    activePalette = themePair(activeTheme)[activeAppearance];
+}
+/** The currently-active theme name. */
+export function getTheme() {
+    return activeTheme;
+}
+/** All registered theme names (built-ins + any registerTheme'd). */
+export function listThemes() {
+    return Object.keys(THEMES);
+}
+/** Resolve a theme name to a known one, falling back to the default. */
+export function resolveTheme(name) {
+    return name && THEMES[name] ? name : DEFAULT_THEME;
+}
+/**
+ * Resolve a theme name (default `staub` when unset/unknown) and make it active.
+ * Mirrors applyAppearance: called once at the render boundary so an unset theme
+ * resets to the brand default and never leaks across renders.
+ */
+export function applyTheme(name) {
+    setTheme(resolveTheme(name));
+    return activeTheme;
+}
+/**
+ * Register (or override) a named theme with its own {dark, light} palette pair.
+ * The honest "palettes are overridable" affordance — `staub` is just the default.
+ */
+export function registerTheme(name, palettes) {
+    THEMES[name] = palettes;
 }
 /** The currently-active background appearance. */
 export function getAppearance() {
@@ -241,10 +378,11 @@ export function heat(t) {
     return mix(stops[i], stops[i + 1], scaled - i);
 }
 /**
- * The dark categorical hues, exported for back-compat. Prefer `categorical()`,
- * which is appearance-aware (it reads the active palette's set).
+ * The default theme's dark categorical hues, exported for back-compat. Prefer
+ * `categorical()`, which is theme- and appearance-aware (it reads the active
+ * palette's set).
  */
-export const CATEGORICAL = DARK_PALETTE.categorical;
+export const CATEGORICAL = THEMES[DEFAULT_THEME].dark.categorical;
 export function categorical(index) {
     const set = activePalette.categorical;
     return set[((index % set.length) + set.length) % set.length];

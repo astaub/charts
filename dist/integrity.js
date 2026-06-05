@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
-const OPEN_MARKER = '‹‹‹agentviz';
-const CLOSE_MARKER = '‹‹‹/agentviz›››';
+const OPEN_MARKER = '‹‹‹charts';
+const CLOSE_MARKER = '‹‹‹/charts›››';
 const MARKER_END = '›››';
 export function computeHash(input) {
     const payload = JSON.stringify({
@@ -12,7 +12,7 @@ export function computeHash(input) {
     return createHash('sha256').update(payload).digest('hex');
 }
 export function wrapWithIntegrity(body, input) {
-    // Strip exactly one trailing newline if present — `renderAgentVizSpec`
+    // Strip exactly one trailing newline if present — `renderChartsSpec`
     // returns a body without one, but `cli.ts` adds one when writing to
     // stdout. We canonicalize to "no trailing newline inside the block."
     const normalizedBody = body.endsWith('\n') ? body.slice(0, -1) : body;
@@ -29,7 +29,7 @@ export function wrapWithIntegrity(body, input) {
 export function verifyIntegrity(text, rerender) {
     const openIdx = text.indexOf(OPEN_MARKER);
     if (openIdx < 0) {
-        return { status: 'no-marker', reason: 'no agentviz marker block found' };
+        return { status: 'no-marker', reason: 'no charts marker block found' };
     }
     const headerEnd = text.indexOf(MARKER_END, openIdx + OPEN_MARKER.length);
     if (headerEnd < 0) {
@@ -83,7 +83,7 @@ export function verifyIntegrity(text, rerender) {
     // Re-render from the embedded spec and compare byte-exactly to the body.
     // Without this step the marker only proves internal consistency; anyone
     // with `sha256sum` can fabricate a block. Re-rendering proves the body
-    // is what agentviz would produce for the embedded spec.
+    // is what charts would produce for the embedded spec.
     let rerendered;
     try {
         rerendered = rerender(spec);

@@ -14,7 +14,7 @@ export { renderWaterfallChart, } from './waterfall.js';
 export { renderBigNumber, } from './bignumber.js';
 import { BrailleCanvas } from './braille.js';
 export { BrailleCanvas } from './braille.js';
-import { THEME, applyAppearance, bodyText, categorical, dim, fg, fgBg, heat, mutedText, ramp, rampShade, resolveColor } from './theme.js';
+import { THEME, applyAppearance, applyTheme, bodyText, categorical, dim, fg, fgBg, heat, mutedText, ramp, rampShade, resolveColor } from './theme.js';
 import { meterTable, padEnd, padStart, panel } from './components.js';
 export * from './theme.js';
 export { colorLabel, deltaBadge, inlineSparkline, legend, meter, meterTable, panel, swatch, } from './components.js';
@@ -630,8 +630,10 @@ export function resolveColorEnabled(options = {}) {
 // context the shared components draw with. Every paneled chart builds one of
 // these so chrome, color, and width math stay consistent across kinds.
 function makeRenderCtx(options) {
-    // Activate the light/dark palette here (the shared boundary) so every kind
-    // built on this context adapts with no per-kind change.
+    // Activate the theme + light/dark palette here (the shared boundary) so every
+    // kind built on this context adapts with no per-kind change. Theme first (an
+    // unset theme resets to the brand default), then appearance.
+    applyTheme(options.theme);
     applyAppearance({ appearance: options.appearance, env: options.env });
     return {
         color: resolveColor({ color: options.color, isTTY: options.isTTY, env: options.env }),

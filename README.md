@@ -1,52 +1,73 @@
-# agentviz
+# charts
 
 **Beautiful charts inside your CLI.**
 
-`agentviz` is a terminal-chart *design system*: every chart kind draws from one
-shared set of components (bordered panels, a canonical palette, color-coded
-labels, sub-cell glyphs), so output comes out beautiful and legible without the
-caller tuning anything — and composes into full dashboards. Truecolor on a TTY;
-clean monochrome Unicode when piped or captured (the common case inside coding
-agents like Claude Code / Codex). It's for agents that need to show evidence in a
-CLI, PR comment, or transcript without dumping raw CSV or hiding denominators.
+<!-- TODO(andrew): hero / brand voice. Replace this paragraph with the pitch in
+     your words — what charts is and who it's for, said the Staub way. The line
+     above is the factual tagline; everything below "Gallery" is reference docs. -->
+
+`charts` renders terminal charts from a JSON spec. Every chart kind draws from
+one shared set of components (bordered panels, the Staub palette, color-coded
+labels, sub-cell glyphs), so output comes out legible without the caller tuning
+anything — and composes into full dashboards. Truecolor on a TTY; clean
+monochrome Unicode when piped or captured (the common case inside coding agents
+like Claude Code / Codex). Built for agents that need to show evidence in a CLI,
+PR comment, or transcript without dumping raw CSV or hiding denominators.
+
+The default theme is **sunset-on-the-ocean** — warm coral through a horizon gold
+into deep ocean blue — so any chart reads as Staub out of the box. Pass
+`--theme classic` for the original blue family, or register your own.
 
 ## Gallery
+
+Every image below is a real render, frozen with a monospace font
+([`scripts/qa-gallery.sh`](scripts/qa-gallery.sh)) so the panel borders line up
+exactly as your terminal draws them.
 
 A composed growth dashboard — KPI tiles with semantic deltas, a trend with a
 goal line, a funnel, and a retention heatmap, all from one spec:
 
-![dashboard](docs/screenshots/dashboard.png)
+![dashboard](docs/screenshots/dashboard.dark.png)
+
+The same dashboard tuned for a light terminal (`--appearance light`) — the whole
+system adapts, never a naive inversion:
+
+![dashboard, light](docs/screenshots/dashboard.light.png)
 
 KPI tiles (semantic green-good / red-bad deltas + sparklines) and a quadrant
-scatter (winners green / laggards red):
+scatter:
 
-![KPI tiles](docs/screenshots/kpi-tiles.png)
-![scatter](docs/screenshots/scatter_after.png)
+![bignumber KPI tiles](docs/screenshots/bignumber.dark.png)
+![scatter](docs/screenshots/scatter.dark.png)
 
-Funnel, bar, line (braille + area), retention heatmap, waterfall MRR-bridge:
+Funnel, bar, line (with a braille line variant), retention heatmap, stacked,
+grouped, and a waterfall MRR-bridge:
 
-![funnel](docs/screenshots/funnel-after.png)
-![bar](docs/screenshots/bar-after.png)
-![line braille](docs/screenshots/line_braille.png)
-![retention](docs/screenshots/retention_after.png)
-![waterfall](docs/screenshots/waterfall_after.png)
-
-```sh
-agentviz dashboard fixtures/dashboard-growth.json --width 118
-```
-
-## Status
-
-`agentviz` is staged for extraction as a private GitHub repository in Phase 1 of
-the OSS release plan. It is not published to npm yet.
-
-Planned package name:
+![funnel](docs/screenshots/funnel.dark.png)
+![bar](docs/screenshots/bar.dark.png)
+![line](docs/screenshots/line.dark.png)
+![line braille](docs/screenshots/line-braille.dark.png)
+![retention](docs/screenshots/retention.dark.png)
+![stacked](docs/screenshots/stacked.dark.png)
+![grouped](docs/screenshots/grouped.dark.png)
+![waterfall](docs/screenshots/waterfall.dark.png)
 
 ```sh
-npm install @staub/agentviz
+charts dashboard fixtures/dashboard-growth.json --width 118
 ```
 
-[ANDREW Q] Confirm the GitHub organization before creating the private repo.
+## Install
+
+```sh
+npm install github:astaub/charts
+```
+
+`dist/` is committed, so the GitHub install needs no build step. Requires Node
+18+. Import the library or run the bundled `charts` CLI:
+
+```ts
+import { renderLineChart } from "@staub/charts";
+```
 
 ## Why
 
@@ -87,7 +108,7 @@ faint-but-visible tint (a low cohort reads as a tinted cell, an absent one as a
 bare dot); and deepens the green/red/amber accents to pop on white.
 
 ```sh
-agentviz retention fixtures/retention-weekly.json --appearance light --width 78
+charts retention fixtures/retention-weekly.json --appearance light --width 78
 ```
 
 Both palettes are kept honest by QA that covers both backgrounds:
@@ -103,9 +124,9 @@ markers, and shaded spans render in place); `lineStyle: "braille"` switches to
 smooth 2×4 sub-cell curves, and `area: true` fills under the line.
 
 ```sh
-agentviz line fixtures/line-weekly-active.json --width 76                 # colored grid
-agentviz line fixtures/line-weekly-active.json --width 76 --linestyle braille  # smooth
-agentviz line fixtures/line-latency.json --width 64                       # area fill
+charts line fixtures/line-weekly-active.json --width 76                 # colored grid
+charts line fixtures/line-weekly-active.json --width 76 --linestyle braille  # smooth
+charts line fixtures/line-latency.json --width 64                       # area fill
 ```
 
 **Retention** renders as a cohort heatmap: each period cell is a solid block
@@ -113,7 +134,7 @@ shaded by its retention rate (truecolor `heat()` ramp on a TTY; `░▒▓█` s
 glyphs when mono), with jagged cohorts showing a dot for unobserved periods.
 
 ```sh
-agentviz retention fixtures/retention-weekly.json --width 78
+charts retention fixtures/retention-weekly.json --width 78
 ```
 
 The **bar-family** kinds share the same chrome: **stacked** draws a colored
@@ -122,9 +143,9 @@ stacked bar + legend + total; **grouped** draws palette-colored grouped columns;
 a sign-tinted change column — an MRR bridge that reads at a glance.
 
 ```sh
-agentviz stacked   fixtures/stacked-plan-mix.json     --width 72
-agentviz grouped   fixtures/grouped-engagement.json   --width 72
-agentviz waterfall fixtures/waterfall-mrr-bridge.json --width 80
+charts stacked   fixtures/stacked-plan-mix.json     --width 72
+charts grouped   fixtures/grouped-engagement.json   --width 72
+charts waterfall fixtures/waterfall-mrr-bridge.json --width 80
 ```
 
 ## CLI
@@ -132,9 +153,9 @@ agentviz waterfall fixtures/waterfall-mrr-bridge.json --width 80
 Pass a chart type and a JSON file, or pipe JSON through stdin.
 
 ```sh
-agentviz line report.json --width 96
-cat report.json | agentviz funnel
-cat filters.json | agentviz filters
+charts line report.json --width 96
+cat report.json | charts funnel
+cat filters.json | charts filters
 ```
 
 Minimal line chart input:
@@ -158,7 +179,7 @@ Minimal line chart input:
 ```
 
 ```sh
-agentviz line activation.json
+charts line activation.json
 ```
 
 Supported charts:
@@ -179,7 +200,7 @@ Supported charts:
 ## API
 
 ```ts
-import { renderFunnelBars } from "@staub/agentviz";
+import { renderFunnelBars } from "@staub/charts";
 
 console.log(renderFunnelBars([
   { label: "Visited pricing", count: 1200 },
@@ -195,7 +216,7 @@ markers, not-comparable regions, footer provenance, and dense-axis label
 strategies. All fields are optional and backwards compatible.
 
 ```ts
-import { renderLineChart } from "@staub/agentviz";
+import { renderLineChart } from "@staub/charts";
 
 console.log(renderLineChart(series, {
   width: 96,
@@ -214,7 +235,7 @@ console.log(renderLineChart(series, {
 CLI equivalents (repeatable where noted):
 
 ```sh
-agentviz line trend.json \
+charts line trend.json \
   --vline at=2025-09,label=launch \
   --shade from=2025-08,to=2025-09,label=pre-launch,pattern=gray \
   --footer "queried 2026-05-18" \
@@ -243,7 +264,7 @@ gets its own fill symbol (`A`, `B`, …) keyed to the legend. All options are
 optional and backwards compatible.
 
 ```ts
-import { renderGroupedBarChart } from "@staub/agentviz";
+import { renderGroupedBarChart } from "@staub/charts";
 
 console.log(renderGroupedBarChart([
   { label: "W1", bars: [{ key: "followed", label: "Followed", value: 40 }, { key: "signed_up", label: "Signed up", value: 12 }] },
@@ -260,7 +281,7 @@ console.log(renderGroupedBarChart([
 CLI:
 
 ```sh
-agentviz grouped trend.json --width 72 --marker at=W2,label=shipped --footer "queried 2026-06-01"
+charts grouped trend.json --width 72 --marker at=W2,label=shipped --footer "queried 2026-06-01"
 ```
 
 - `markers` (`--marker at=<bucket>[,label=<text>]`) — a vertical rule drawn at the bucket whose label matches `at`; bars paint over it on a collision, and the label prints above the plot. Unmatched `at` values are silently skipped. This is the bar-chart analogue of `vlines` on line charts.
@@ -297,7 +318,7 @@ render the same; `vlines`/`shades` collapse to compact `Marks:`/`Shaded:` lines.
 Below 54 columns it falls back to per-series sparklines.
 
 ```sh
-agentviz line trend.json --linestyle braille --width 96
+charts line trend.json --linestyle braille --width 96
 ```
 
 ### Big numbers
@@ -306,7 +327,7 @@ agentviz line trend.json --linestyle braille --width 96
 period-over-period delta and sparkline — the most common dashboard tile.
 
 ```ts
-import { renderBigNumber } from "@staub/agentviz";
+import { renderBigNumber } from "@staub/charts";
 
 renderBigNumber(1234, {
   label: "Weekly signups",
@@ -318,7 +339,7 @@ renderBigNumber(1234, {
 ```
 
 ```sh
-echo '{"value":1234,"options":{"label":"Weekly signups","previous":1102}}' | agentviz bignumber
+echo '{"value":1234,"options":{"label":"Weekly signups","previous":1102}}' | charts bignumber
 ```
 
 Like every chart, output is plain text with no color unless `color` is set, so it
@@ -330,19 +351,19 @@ Run the bundled synthetic render:
 bun run example
 ```
 
-## Integrity (`--integrity` + `agentviz verify`)
+## Integrity (`--integrity` + `charts verify`)
 
 Opt-in tamper-evident output. When an agent shows a chart in a transcript, the
-operator can verify the chart was actually produced by agentviz instead of
+operator can verify the chart was actually produced by charts instead of
 hand-edited prose.
 
 ```sh
-agentviz line report.json --integrity > chart.txt
-agentviz verify chart.txt
-# OK (chart=line agentviz=0.1.3 sha256=…)
+charts line report.json --integrity > chart.txt
+charts verify chart.txt
+# OK (chart=line charts=0.1.3 sha256=…)
 
 # Operator suspects fabrication or edit:
-agentviz verify suspicious-chart.txt
+charts verify suspicious-chart.txt
 # TAMPERED (…)
 #   reason: re-rendered body from embedded spec does not match block body —
 #           chart was hand-edited
@@ -351,9 +372,9 @@ agentviz verify suspicious-chart.txt
 With `--integrity`, rendered output is wrapped in a marker block:
 
 ```
-‹‹‹agentviz/0.1.3 chart:line sha256:<64-hex> spec:<base64-json>›››
+‹‹‹charts/0.1.3 chart:line sha256:<64-hex> spec:<base64-json>›››
 [chart content]
-‹‹‹/agentviz›››
+‹‹‹/charts›››
 ```
 
 The block carries the full canonical spec (chart kind, title, width, series,
@@ -361,26 +382,26 @@ options, line annotations — everything needed to reproduce the body) as
 base64-encoded JSON, plus a sha256 hash binding the version, chart, spec,
 and body together.
 
-`agentviz verify` runs two checks:
+`charts verify` runs two checks:
 
 1. **Hash check.** Recomputes sha256(version, chart, spec, body) from the
    embedded spec and the current body. Catches any edit to the body, spec,
    version, chart, or the hash itself.
-2. **Re-render check.** Re-renders the embedded spec via `renderAgentVizSpec`
+2. **Re-render check.** Re-renders the embedded spec via `renderChartsSpec`
    and compares byte-exactly to the block body. This is the stronger guarantee:
    without it, anyone with `sha256sum` could fabricate a block by editing the
    body and recomputing the hash. With it, a passing block means the body is
-   what agentviz would produce for the embedded spec, on this version of
-   agentviz, running locally — which is the strongest claim possible without
+   what charts would produce for the embedded spec, on this version of
+   charts, running locally — which is the strongest claim possible without
    a server-side signing key.
 
 Caveats:
 
-- Content outside the marker block is not covered by the hash. `agentviz
+- Content outside the marker block is not covered by the hash. `charts
   verify` surfaces a byte-count note when leading or trailing text is present
   so operators do not treat the whole file as verified.
-- Re-render comparison uses the running agentviz version's renderer. If you
-  verify a block produced by an older agentviz version whose renderer has
+- Re-render comparison uses the running charts version's renderer. If you
+  verify a block produced by an older charts version whose renderer has
   since changed, the re-render check will report TAMPERED even though the
   block itself is genuine. Re-render with the matching version when this
   matters.
@@ -408,11 +429,11 @@ to prior releases.
 
 ## Boundaries
 
-`agentviz` is source-agnostic. It does not know about analytics tools,
+`charts` is source-agnostic. It does not know about analytics tools,
 warehouses, saved insights, credentials, or freshness. Source-specific packages
-should normalize their data first, then call `agentviz`.
+should normalize their data first, then call `charts`.
 
-Filter summaries are display-only. `agentviz` can show which filters shaped a
+Filter summaries are display-only. `charts` can show which filters shaped a
 chart, and which filters an adapter recommends, but it does not query,
 translate, or validate source-specific filter semantics.
 
@@ -424,19 +445,6 @@ translate, or validate source-specific filter semantics.
 - Credentials: none.
 - Private data: callers must pass already-redacted data.
 
-## Extraction
-
-See `EXTRACTION.md` for the private-repo split path from this monorepo staging
-folder. Roadmap reference: `plans/2026-05-14-oss-extraction-roadmap.md`.
-
 ## License
 
 MIT
-
-## Public Launch Gate
-
-- package name confirmed;
-- private GitHub repo created in the confirmed organization;
-- tests pass inside the extracted package;
-- README examples match actual output;
-- no customer names, local paths, or private fixtures remain.

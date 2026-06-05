@@ -1,4 +1,4 @@
-import { type AppearanceMode, type ColorMode } from './theme.js';
+import { type AppearanceMode, type ColorMode, type ThemeName } from './theme.js';
 import type { RenderCtx } from './components.js';
 export declare function stripAnsi(value: string): string;
 /** Terminal display columns for a single code point (0 / 1 / 2). */
@@ -20,6 +20,8 @@ export interface RenderContextOptions {
     env?: Record<string, string | undefined>;
     /** Background appearance: 'light' | 'dark' | 'auto'. Default 'dark'. */
     appearance?: AppearanceMode;
+    /** Palette theme. Default 'staub' (sunset-on-ocean); 'classic' = blue family. */
+    theme?: ThemeName;
 }
 /**
  * Bundle the color decision and the (single) width helpers into the context the

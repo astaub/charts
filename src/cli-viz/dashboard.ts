@@ -19,7 +19,7 @@ import {
   renderStackedBarChart,
   renderWaterfallChart,
 } from './index.js';
-import { THEME, bold, fg, mutedText, type AppearanceMode } from './theme.js';
+import { THEME, bold, fg, mutedText, type AppearanceMode, type ThemeName } from './theme.js';
 import { makeRenderCtx, visualWidth } from './render-context.js';
 
 export interface DashboardPanel {
@@ -50,6 +50,8 @@ export interface DashboardOptions {
   env?: Record<string, string | undefined>;
   /** Background appearance: 'light' | 'dark' | 'auto'. Default 'dark'. */
   appearance?: AppearanceMode;
+  /** Palette theme. Default 'staub' (sunset-on-ocean); 'classic' = blue family. */
+  theme?: ThemeName;
 }
 
 const DEFAULT_WIDTH = 100;
@@ -124,6 +126,7 @@ function renderCell(panel: DashboardPanel, width: number, dash: DashboardOptions
     isTTY: dash.isTTY,
     env: dash.env,
     appearance: dash.appearance,
+    theme: dash.theme,
     ...(panel.title ? { title: panel.title } : {}),
   };
   const arr = <T,>(v: unknown): T[] => (Array.isArray(v) ? (v as T[]) : []);

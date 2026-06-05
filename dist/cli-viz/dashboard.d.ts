@@ -1,4 +1,4 @@
-import { type AppearanceMode } from './theme.js';
+import { type AppearanceMode, type ThemeName } from './theme.js';
 export interface DashboardPanel {
     chart: string;
     title?: string;
@@ -24,5 +24,7 @@ export interface DashboardOptions {
     env?: Record<string, string | undefined>;
     /** Background appearance: 'light' | 'dark' | 'auto'. Default 'dark'. */
     appearance?: AppearanceMode;
+    /** Palette theme. Default 'staub' (sunset-on-ocean); 'classic' = blue family. */
+    theme?: ThemeName;
 }
 export declare function renderDashboard(rows: DashboardRow[], options?: DashboardOptions): string;

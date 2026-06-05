@@ -1,6 +1,6 @@
 {
-  "name": "@staub/agentviz",
-  "version": "0.3.0",
+  "name": "@staub/charts",
+  "version": "0.1.0",
   "private": true,
   "description": "Terminal data visualizations that agents can show humans.",
   "license": "MIT",
@@ -14,7 +14,7 @@
   ],
   "author": "Staub",
   "bin": {
-    "agentviz": "./dist/cli.js"
+    "charts": "./dist/cli.js"
   },
   "main": "./dist/cli-viz/index.js",
   "types": "./dist/cli-viz/index.d.ts",

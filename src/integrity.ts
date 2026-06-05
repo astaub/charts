@@ -1,12 +1,12 @@
 import { createHash } from 'node:crypto';
 
-// Tamper-evident marker block for rendered agentviz output. The agent cannot
-// produce a valid block without actually running agentviz, because verify
+// Tamper-evident marker block for rendered charts output. The agent cannot
+// produce a valid block without actually running charts, because verify
 // (a) recomputes the sha256 hash from the embedded spec + version + chart +
 // body and rejects mismatches, AND (b) re-renders the body from the embedded
 // spec and rejects any difference. Without a server-side signing key, this
 // is the strongest available guarantee: the body inside the block is the
-// byte-exact output agentviz would produce for the embedded spec.
+// byte-exact output charts would produce for the embedded spec.
 
 export interface IntegrityWrapInput {
   chart: string;
@@ -35,15 +35,15 @@ export interface VerifyResult {
 // Required, not optional: hashes alone do not defend against forgery,
 // because an attacker who edits the body can recompute the sha256 with any
 // hashing tool and replace it in the block. The re-render check (the body
-// inside the block must match what agentviz would produce for the embedded
+// inside the block must match what charts would produce for the embedded
 // spec) is what closes the forgery hole. The library does not bundle a
 // default renderer because doing so would force a circular dependency
 // between this module and `cli.ts`; consumers (including the bundled CLI
-// at `agentviz verify`) must pass one explicitly.
+// at `charts verify`) must pass one explicitly.
 export type RendererCallback = (spec: unknown) => string;
 
-const OPEN_MARKER = '‹‹‹agentviz';
-const CLOSE_MARKER = '‹‹‹/agentviz›››';
+const OPEN_MARKER = '‹‹‹charts';
+const CLOSE_MARKER = '‹‹‹/charts›››';
 const MARKER_END = '›››';
 
 export function computeHash(input: {
@@ -62,7 +62,7 @@ export function computeHash(input: {
 }
 
 export function wrapWithIntegrity(body: string, input: IntegrityWrapInput): string {
-  // Strip exactly one trailing newline if present — `renderAgentVizSpec`
+  // Strip exactly one trailing newline if present — `renderChartsSpec`
   // returns a body without one, but `cli.ts` adds one when writing to
   // stdout. We canonicalize to "no trailing newline inside the block."
   const normalizedBody = body.endsWith('\n') ? body.slice(0, -1) : body;
@@ -80,7 +80,7 @@ export function wrapWithIntegrity(body: string, input: IntegrityWrapInput): stri
 export function verifyIntegrity(text: string, rerender: RendererCallback): VerifyResult {
   const openIdx = text.indexOf(OPEN_MARKER);
   if (openIdx < 0) {
-    return { status: 'no-marker', reason: 'no agentviz marker block found' };
+    return { status: 'no-marker', reason: 'no charts marker block found' };
   }
   const headerEnd = text.indexOf(MARKER_END, openIdx + OPEN_MARKER.length);
   if (headerEnd < 0) {
@@ -139,7 +139,7 @@ export function verifyIntegrity(text: string, rerender: RendererCallback): Verif
   // Re-render from the embedded spec and compare byte-exactly to the body.
   // Without this step the marker only proves internal consistency; anyone
   // with `sha256sum` can fabricate a block. Re-rendering proves the body
-  // is what agentviz would produce for the embedded spec.
+  // is what charts would produce for the embedded spec.
   let rerendered: string;
   try {
     rerendered = rerender(spec);

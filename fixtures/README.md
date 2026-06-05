@@ -2,7 +2,7 @@
 
 Realistic, real-shaped sample data so every chart kind can be rendered against
 data that looks like production analytics (PostHog-style funnels, Highcharts-style
-category breakdowns) instead of toy numbers. Each file is a complete agentviz spec
+category breakdowns) instead of toy numbers. Each file is a complete charts spec
 — `chart` is embedded, so you can render it directly:
 
 ```sh

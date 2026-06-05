@@ -75,6 +75,7 @@ function renderCell(panel, width, dash) {
         isTTY: dash.isTTY,
         env: dash.env,
         appearance: dash.appearance,
+        theme: dash.theme,
         ...(panel.title ? { title: panel.title } : {}),
     };
     const arr = (v) => (Array.isArray(v) ? v : []);

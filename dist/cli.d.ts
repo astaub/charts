@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { type BarChartDatum, type FilterDatum, type FunnelStepDatum, type GroupedBarMarker, type LineChartLineStyle, type LineChartSeries, type LineChartShade, type LineChartVline, type LineChartXAxisLabels, type RetentionCohortDatum, type ScatterPlotPoint, type StackedBarBucketDatum, type SuggestedFilterDatum, type TableColumn, type TableRow, type WaterfallStep } from './cli-viz/index.js';
-import { type AppearanceMode } from './cli-viz/theme.js';
+import { type AppearanceMode, type ThemeName } from './cli-viz/theme.js';
 type ChartKind = 'bar' | 'bignumber' | 'dashboard' | 'filters' | 'funnel' | 'grouped' | 'line' | 'retention' | 'scatter' | 'sparkline' | 'stacked' | 'table' | 'waterfall';
 interface ParsedArgs {
     chart?: ChartKind;
@@ -16,8 +16,9 @@ interface ParsedArgs {
     integrity?: boolean;
     verify?: boolean;
     appearance?: AppearanceMode;
+    theme?: ThemeName;
 }
-interface AgentVizSpec {
+interface ChartsSpec {
     chart?: ChartKind;
     title?: string;
     options?: Record<string, unknown>;
@@ -48,11 +49,11 @@ interface LineChartOverrides {
     xAxisLabels?: LineChartXAxisLabels;
     lineStyle?: LineChartLineStyle;
 }
-export interface RenderAgentVizSpecOptions {
+export interface RenderChartsSpecOptions {
     integrity?: boolean;
     version?: string;
 }
-export declare function renderAgentVizSpec(spec: unknown, chartHint?: string, cliWidth?: number, lineOverrides?: LineChartOverrides, extra?: RenderAgentVizSpecOptions): string;
-export declare function buildCanonicalSpec(spec: AgentVizSpec, chart: ChartKind, width: number | undefined, lineOverrides: LineChartOverrides): Record<string, unknown>;
-export declare function parseAgentVizArgs(argv: string[]): ParsedArgs;
+export declare function renderChartsSpec(spec: unknown, chartHint?: string, cliWidth?: number, lineOverrides?: LineChartOverrides, extra?: RenderChartsSpecOptions): string;
+export declare function buildCanonicalSpec(spec: ChartsSpec, chart: ChartKind, width: number | undefined, lineOverrides: LineChartOverrides): Record<string, unknown>;
+export declare function parseChartsArgs(argv: string[]): ParsedArgs;
 export {};

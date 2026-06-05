@@ -3,7 +3,7 @@
 // Renders one aggregate value large and legible, with an optional
 // period-over-period delta (up/down arrow + % change) and an optional
 // sparkline of the underlying series. Inspired by PostHog's "Number" insight.
-// Like the rest of agentviz it is text-first: no color is emitted unless
+// Like the rest of charts it is text-first: no color is emitted unless
 // explicitly enabled, so the output survives an agent transcript, copy/paste,
 // and the web renderer.
 

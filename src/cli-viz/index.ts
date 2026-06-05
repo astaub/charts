@@ -45,7 +45,7 @@ export {
 } from './bignumber.js';
 import { BrailleCanvas } from './braille.js';
 export { BrailleCanvas } from './braille.js';
-import { THEME, applyAppearance, bodyText, categorical, dim, fg, fgBg, heat, mutedText, ramp, rampShade, resolveColor, type AppearanceMode, type ColorMode, type RGB } from './theme.js';
+import { THEME, applyAppearance, applyTheme, bodyText, categorical, dim, fg, fgBg, heat, mutedText, ramp, rampShade, resolveColor, type AppearanceMode, type ColorMode, type RGB, type ThemeName } from './theme.js';
 import { meterTable, padEnd, padStart, panel, type MeterRow, type RenderCtx } from './components.js';
 export * from './theme.js';
 export {
@@ -77,6 +77,8 @@ export interface CliVizOptions {
   env?: Record<string, string | undefined>;
   /** Background appearance the chart is tuned for: 'light' | 'dark' | 'auto'. Default 'dark'. */
   appearance?: AppearanceMode;
+  /** Palette theme. Default 'staub' (sunset-on-ocean); 'classic' = blue family. */
+  theme?: ThemeName;
   barStyle?: 'ascii' | 'blocks';
   /** Panel title drawn into the top border (paneled charts only). */
   title?: string;
@@ -878,8 +880,10 @@ export function resolveColorEnabled(options: CliVizOptions = {}): boolean {
 // context the shared components draw with. Every paneled chart builds one of
 // these so chrome, color, and width math stay consistent across kinds.
 function makeRenderCtx(options: CliVizOptions): RenderCtx {
-  // Activate the light/dark palette here (the shared boundary) so every kind
-  // built on this context adapts with no per-kind change.
+  // Activate the theme + light/dark palette here (the shared boundary) so every
+  // kind built on this context adapts with no per-kind change. Theme first (an
+  // unset theme resets to the brand default), then appearance.
+  applyTheme(options.theme);
   applyAppearance({ appearance: options.appearance, env: options.env });
   return {
     color: resolveColor({ color: options.color as ColorMode | undefined, isTTY: options.isTTY, env: options.env }),

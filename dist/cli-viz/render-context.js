@@ -5,7 +5,7 @@
 // frames text identically (and so the shared components in ./components.ts get a
 // consistent, ANSI-aware width model). It depends only on ./theme (no chart
 // code), so any renderer can import it without a cycle.
-import { applyAppearance, resolveColor } from './theme.js';
+import { applyAppearance, applyTheme, resolveColor } from './theme.js';
 const ANSI_PATTERN = /\u001B\[[0-?]*[ -/]*[@-~]/g;
 const CONTROL_PATTERN = /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F-\u009F]/g;
 export function stripAnsi(value) {
@@ -84,6 +84,9 @@ export function sanitizeText(value) {
  * adapts to a light/dark background with no per-kind change.
  */
 export function makeRenderCtx(options = {}) {
+    // Theme first (an unset theme resets to the brand default), then appearance —
+    // applyAppearance reads the active theme to pick the palette pair.
+    applyTheme(options.theme);
     applyAppearance({ appearance: options.appearance, env: options.env });
     return {
         color: resolveColor({ color: options.color, isTTY: options.isTTY, env: options.env }),

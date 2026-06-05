@@ -3,14 +3,14 @@ import { readFileSync, realpathSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { renderBarChart, renderBigNumber, renderFilterSummary, renderFunnelBars, renderGroupedBarChart, renderLineChart, renderRetentionHeatmap, renderScatterPlot, renderSparkline, renderStackedBarChart, renderTable, renderWaterfallChart, } from './cli-viz/index.js';
 import { verifyIntegrity, wrapWithIntegrity } from './integrity.js';
-import { resolveAppearance, resolveCliColorMode } from './cli-viz/theme.js';
+import { listThemes, resolveAppearance, resolveCliColorMode } from './cli-viz/theme.js';
 import { renderDashboard } from './cli-viz/dashboard.js';
 // Package version is read at build time and inlined by tsc. The version is
 // embedded into integrity markers so verify can tell which renderer produced
-// the block, even if the consumer is on a different agentviz release.
+// the block, even if the consumer is on a different charts release.
 import { readFileSync as readPkgSync } from 'node:fs';
 import { dirname as pathDirname, join as pathJoin } from 'node:path';
-function readAgentVizVersion() {
+function readChartsVersion() {
     // Walks up from this file looking for the nearest package.json. Works in
     // both src/ (during tests) and dist/ (after build) without baking the
     // version into source.
@@ -55,7 +55,7 @@ const CHARTS = new Set([
 // Charts rebuilt on the shared design-system panel (border/title live inside
 // the renderer). Grows as more kinds adopt the component set.
 const PANELED = new Set(['bar', 'funnel', 'line', 'retention', 'stacked', 'grouped', 'waterfall', 'bignumber', 'scatter', 'dashboard']);
-export function renderAgentVizSpec(spec, chartHint, cliWidth, lineOverrides = {}, extra = {}) {
+export function renderChartsSpec(spec, chartHint, cliWidth, lineOverrides = {}, extra = {}) {
     const objectSpec = normalizeSpec(spec);
     const chart = normalizeChart(chartHint ?? objectSpec.chart);
     const width = cliWidth ?? numberOption(objectSpec.width) ?? numberOption(objectSpec.options?.width);
@@ -76,20 +76,20 @@ export function renderAgentVizSpec(spec, chartHint, cliWidth, lineOverrides = {}
     if (!extra.integrity)
         return rendered;
     // Build the canonical embedded spec — the complete set of inputs needed
-    // to reproduce this exact body via `renderAgentVizSpec(spec)`. Verify
+    // to reproduce this exact body via `renderChartsSpec(spec)`. Verify
     // re-renders from this spec and compares byte-exactly to the body inside
-    // the marker block, so a forger has to actually run agentviz with these
+    // the marker block, so a forger has to actually run charts with these
     // inputs to produce a passing block (which means there is no forgery —
-    // the chart is what agentviz would produce for the embedded spec).
+    // the chart is what charts would produce for the embedded spec).
     const canonicalSpec = buildCanonicalSpec(objectSpec, chart, width, lineOverrides);
     return wrapWithIntegrity(rendered, {
         chart,
-        version: extra.version ?? readAgentVizVersion(),
+        version: extra.version ?? readChartsVersion(),
         spec: canonicalSpec,
     });
 }
 // Builds a self-contained spec that, when passed back through
-// `renderAgentVizSpec(spec)` (no chartHint, no cliWidth, no lineOverrides),
+// `renderChartsSpec(spec)` (no chartHint, no cliWidth, no lineOverrides),
 // reproduces the exact body that was hashed. `chart` is set explicitly so
 // the embedded spec carries its own chart kind. All width / line-style
 // overrides are folded into the spec so re-render does not depend on
@@ -150,10 +150,10 @@ export function buildCanonicalSpec(spec, chart, width, lineOverrides) {
     }
     return out;
 }
-// Re-renders a previously-canonicalized spec. Used by `agentviz verify` to
+// Re-renders a previously-canonicalized spec. Used by `charts verify` to
 // recompute the body for comparison. The spec already encodes its own
 // chart kind and width, so no overrides are passed.
-const integrityRerender = (spec) => renderAgentVizSpec(spec);
+const integrityRerender = (spec) => renderChartsSpec(spec);
 function mergeLineOptions(spec, overrides) {
     const merged = {};
     if (spec.vlines !== undefined)
@@ -178,7 +178,7 @@ function mergeLineOptions(spec, overrides) {
         merged.lineStyle = overrides.lineStyle;
     return merged;
 }
-export function parseAgentVizArgs(argv) {
+export function parseChartsArgs(argv) {
     const args = {};
     // `verify` is a subcommand that takes only an optional file path; it does
     // not accept chart kinds or render flags.
@@ -234,6 +234,18 @@ export function parseAgentVizArgs(argv) {
         }
         if (arg.startsWith('--appearance=')) {
             args.appearance = parseAppearance(arg.slice('--appearance='.length));
+            continue;
+        }
+        if (arg === '--theme') {
+            const value = argv[index + 1];
+            if (!value)
+                throw new Error(`--theme requires a value (${listThemes().join('|')})`);
+            args.theme = parseTheme(value);
+            index += 1;
+            continue;
+        }
+        if (arg.startsWith('--theme=')) {
+            args.theme = parseTheme(arg.slice('--theme='.length));
             continue;
         }
         if (arg === '--vline') {
@@ -397,9 +409,15 @@ function parseAppearance(value) {
         return value;
     throw new Error(`--appearance must be light|dark|auto, got: ${value}`);
 }
+function parseTheme(value) {
+    const known = listThemes();
+    if (known.includes(value))
+        return value;
+    throw new Error(`--theme must be ${known.join('|')}, got: ${value}`);
+}
 async function main() {
     try {
-        const args = parseAgentVizArgs(process.argv.slice(2));
+        const args = parseChartsArgs(process.argv.slice(2));
         if (args.help) {
             process.stdout.write(helpText());
             return;
@@ -411,7 +429,7 @@ async function main() {
             if (result.chart)
                 summaryParts.push(`chart=${result.chart}`);
             if (result.version)
-                summaryParts.push(`agentviz=${result.version}`);
+                summaryParts.push(`charts=${result.version}`);
             if (result.actualHash)
                 summaryParts.push(`sha256=${result.actualHash.slice(0, 12)}…`);
             const summary = summaryParts.length > 0 ? ` (${summaryParts.join(' ')})` : '';
@@ -485,10 +503,19 @@ async function main() {
                 spec.options = { ...existing, appearance: resolveAppearance({ appearance: args.appearance ?? 'auto' }) };
             }
         }
-        process.stdout.write(`${renderAgentVizSpec(spec, args.chart, args.width, lineOverrides, extra)}\n`);
+        // Fold the theme into the spec options too (default 'staub'), so the chosen
+        // palette round-trips through the integrity block exactly like color and
+        // appearance. An unset --theme leaves it to the staub default downstream.
+        if (isRecord(spec) && args.theme !== undefined) {
+            const existing = isRecord(spec.options) ? spec.options : {};
+            if (existing.theme === undefined) {
+                spec.options = { ...existing, theme: args.theme };
+            }
+        }
+        process.stdout.write(`${renderChartsSpec(spec, args.chart, args.width, lineOverrides, extra)}\n`);
     }
     catch (error) {
-        process.stderr.write(`agentviz: ${error instanceof Error ? error.message : String(error)}\n\n`);
+        process.stderr.write(`charts: ${error instanceof Error ? error.message : String(error)}\n\n`);
         process.stderr.write(helpText());
         process.exitCode = 1;
     }
@@ -595,16 +622,16 @@ async function readStdin() {
     return Buffer.concat(chunks).toString('utf8');
 }
 function helpText() {
-    return `agentviz
+    return `charts
 
 Render terminal charts from JSON. Built for agents that need to show evidence
 inside a CLI transcript.
 
 Usage:
-  agentviz <chart> [file.json] [--width 100] [--appearance auto] [--integrity]
-  cat chart.json | agentviz <chart>
-  agentviz verify [chart.txt]
-  cat chart.txt | agentviz verify
+  charts <chart> [file.json] [--width 100] [--appearance auto] [--integrity]
+  cat chart.json | charts <chart>
+  charts verify [chart.txt]
+  cat chart.txt | charts verify
 
 Charts:
   bar, bignumber, filters, funnel, grouped, line, retention, scatter, sparkline, stacked, table, waterfall
@@ -612,6 +639,10 @@ Charts:
 Appearance:
   --appearance light|dark|auto   Palette tuned for the terminal background.
                 Default auto: detects a light terminal from COLORFGBG, else dark.
+
+Theme:
+  --theme staub|classic   Color palette. Default staub (sunset-on-ocean: warm
+                coral → ocean blue). classic is the original blue family.
 
 Line chart flags (repeatable where noted):
   --vline at=<bucket>[,label=<text>][,position=above|below]
@@ -630,11 +661,11 @@ Integrity:
                 TAMPERED. Exit 0 on OK, 2 on TAMPERED/malformed/missing.
 
 Examples:
-  agentviz line report.json --width 96
-  agentviz line report.json --integrity > out.txt
-  agentviz verify out.txt
-  cat filters.json | agentviz filters
-  agentviz line trend.json --vline at=2025-09,label=launch --shade from=2025-08,to=2025-09,label=pre-launch,pattern=gray --footer "queried 2026-05-18"
+  charts line report.json --width 96
+  charts line report.json --integrity > out.txt
+  charts verify out.txt
+  cat filters.json | charts filters
+  charts line trend.json --vline at=2025-09,label=launch --shade from=2025-08,to=2025-09,label=pre-launch,pattern=gray --footer "queried 2026-05-18"
 
 Line input:
   {"series":[{"label":"Page views","points":[{"label":"Mon","value":12}]}]}

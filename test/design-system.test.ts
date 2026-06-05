@@ -86,9 +86,13 @@ describe('design system — glyphs and palette', () => {
     }
     const deep = rampShade(0, 5);
     const pale = rampShade(4, 5);
-    // Deep shade is darker/more saturated than the palest shade.
-    expect(deep.b).toBeGreaterThanOrEqual(pale.b - 1);
-    expect(pale.r).toBeGreaterThan(deep.r);
+    // The first and last shades are clearly distinct stops, so a descending bar
+    // / draining funnel reads as a coherent gradient. (Theme-agnostic: the staub
+    // default ramp runs warm coral → cool ocean, so no single channel is
+    // monotonic — we only require the ends differ markedly.)
+    const channelDistance =
+      Math.abs(deep.r - pale.r) + Math.abs(deep.g - pale.g) + Math.abs(deep.b - pale.b);
+    expect(channelDistance).toBeGreaterThan(40);
   });
 });
 

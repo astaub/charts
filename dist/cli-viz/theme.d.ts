@@ -50,8 +50,31 @@ export interface Palette {
     /** Categorical hues for multi-series charts. Blue-led, evenly spread. */
     categorical: RGB[];
 }
+export type BuiltinTheme = 'staub' | 'classic';
+export type ThemeName = BuiltinTheme | (string & {});
+/** The name used when no theme is selected (and the fallback for unknown names). */
+export declare const DEFAULT_THEME: BuiltinTheme;
 /** Switch the active palette. Called at the render boundary, not per kind. */
 export declare function setAppearance(appearance: Appearance): void;
+/** Switch the active theme, keeping the current appearance. */
+export declare function setTheme(name: ThemeName): void;
+/** The currently-active theme name. */
+export declare function getTheme(): ThemeName;
+/** All registered theme names (built-ins + any registerTheme'd). */
+export declare function listThemes(): ThemeName[];
+/** Resolve a theme name to a known one, falling back to the default. */
+export declare function resolveTheme(name?: ThemeName): ThemeName;
+/**
+ * Resolve a theme name (default `staub` when unset/unknown) and make it active.
+ * Mirrors applyAppearance: called once at the render boundary so an unset theme
+ * resets to the brand default and never leaks across renders.
+ */
+export declare function applyTheme(name?: ThemeName): ThemeName;
+/**
+ * Register (or override) a named theme with its own {dark, light} palette pair.
+ * The honest "palettes are overridable" affordance — `staub` is just the default.
+ */
+export declare function registerTheme(name: string, palettes: Record<Appearance, Palette>): void;
 /** The currently-active background appearance. */
 export declare function getAppearance(): Appearance;
 /** The currently-active palette (the raw colors behind THEME/ramp/heat). */
@@ -76,8 +99,9 @@ export declare function rampShade(index: number, count: number): RGB;
 /** Sample the active heat ramp at t in [0,1] (0 = cold/low, 1 = hot/high). */
 export declare function heat(t: number): RGB;
 /**
- * The dark categorical hues, exported for back-compat. Prefer `categorical()`,
- * which is appearance-aware (it reads the active palette's set).
+ * The default theme's dark categorical hues, exported for back-compat. Prefer
+ * `categorical()`, which is theme- and appearance-aware (it reads the active
+ * palette's set).
  */
 export declare const CATEGORICAL: RGB[];
 export declare function categorical(index: number): RGB;

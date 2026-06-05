@@ -2,7 +2,7 @@ import { readFileSync, readdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
-import { renderAgentVizSpec } from '../src/cli';
+import { renderChartsSpec } from '../src/cli';
 import { stripAnsi } from '../src/cli-viz/index';
 
 const fixturesDir = join(dirname(fileURLToPath(import.meta.url)), '..', 'fixtures');
@@ -18,8 +18,8 @@ describe('fixtures', () => {
       const spec = JSON.parse(readFileSync(join(fixturesDir, file), 'utf8'));
       expect(typeof spec.chart).toBe('string');
 
-      const mono = renderAgentVizSpec({ ...spec, options: { color: 'never' } }, undefined, 72);
-      const color = renderAgentVizSpec({ ...spec, options: { color: 'always' } }, undefined, 72);
+      const mono = renderChartsSpec({ ...spec, options: { color: 'never' } }, undefined, 72);
+      const color = renderChartsSpec({ ...spec, options: { color: 'always' } }, undefined, 72);
 
       // Both modes produce output, and color stays within the same geometry.
       expect(mono.length).toBeGreaterThan(0);

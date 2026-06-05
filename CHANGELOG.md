@@ -1,10 +1,26 @@
-# @staub/agentviz CHANGELOG
+# @staub/charts CHANGELOG
+
+## 0.1.0 — first public release
+
+- **Public debut as `@staub/charts`** (repo `astaub/charts`). Renamed from the
+  internal `@staub/agentviz`: package name, `charts` CLI binary, and the
+  tamper-evident integrity marker (`‹‹‹charts … ›››`) all carry the new name.
+- feat(theme): **default `staub` theme — sunset-on-the-ocean.** Warm coral
+  through a horizon gold into deep ocean blue drives the ramp, categorical set,
+  heat cells, and accents, so any render is recognizably Staub out of the box.
+  Tuned for both dark (sunset over a night ocean) and light (sunrise over a
+  paler sea) backgrounds. The original blue family is preserved as the `classic`
+  theme; palettes are overridable via `--theme`, `setTheme()`, and
+  `registerTheme()`.
+- docs: README gallery re-rendered on the `staub` theme and frozen with a
+  monospace font; governance added (`AGENTS.md`, `CLAUDE.md`, `CONTRIBUTING.md`)
+  plus CI (typecheck + build + test on Node 18/20).
 
 ## Unreleased
 
 - feat(dashboard): **terminal dashboards** — compose KPI tiles + charts into one
   multi-panel grid. New `cli-viz/dashboard.ts` (`renderDashboard`) + a
-  `dashboard` CLI kind + `@staub/agentviz/dashboard` subpath export. A spec is
+  `dashboard` CLI kind + `@staub/charts/dashboard` subpath export. A spec is
   rows of panels; each panel is any chart kind (bignumber/line/funnel/retention/
   bar/…). The dashboard splits each row's width across its cells, renders each at
   that width (inheriting the board's color decision), and lays them out
@@ -127,7 +143,7 @@
   Below 54 columns (or when a legible meter won't fit) they fall back to the
   existing stacked list. Color is resolved at the CLI boundary and folds into
   the integrity block, so `--integrity` output still round-trips through
-  `agentviz verify` in both mono and color.
+  `charts verify` in both mono and color.
 - feat(fixtures): realistic, production-shaped sample data under `fixtures/`
   (activation/checkout funnels, browser-share/traffic/MRR bars) plus a test that
   every fixture parses and renders within width in both modes.
@@ -145,7 +161,7 @@
   (e.g. followed-vs-signed-up per week). Each series gets a distinct fill
   symbol keyed to the legend; supports `seriesOrder`, `valueFormat`/`unit`,
   `height`, and `footer`. Below 54 columns (or when groups can't fit) it falls
-  back to a per-bucket block listing. New `@staub/agentviz/grouped` subpath
+  back to a per-bucket block listing. New `@staub/charts/grouped` subpath
   export.
 - feat(grouped): `markers: [{ at, label }]` (`--marker at=<bucket>[,label=...]`)
   draws a vertical annotation rule at a bucket — the bar-chart analogue of
@@ -153,7 +169,7 @@
   Bars paint over the rule on a collision; the label prints above the plot;
   unmatched buckets are skipped; at narrow widths labelled markers collapse to
   a `Marks:` line. Folds into the integrity block so it round-trips through
-  `agentviz verify`.
+  `charts verify`.
 - All additions are optional and backwards compatible; default output is
   unchanged.
 
@@ -165,7 +181,7 @@
   `compact` formatting, an optional `sparkline`, and opt-in color keyed to
   `goodDirection` (up vs down is good). Text-first: no color unless `color` is
   set, so output survives transcripts and copy/paste. New
-  `@staub/agentviz/bignumber` subpath export.
+  `@staub/charts/bignumber` subpath export.
 - feat(line): `lineStyle: "braille"` renders the line body at 2×4 sub-cell
   resolution (~8× the density of block characters at the same width) via a new
   `BrailleCanvas` primitive (exported from the package root). Axis, x-labels,
@@ -191,20 +207,20 @@
   carries the full canonical spec (chart kind, title, width, series, options,
   line annotations) as base64-encoded JSON plus a sha256 hash binding
   version + chart + spec + body together. Marker format:
-  `‹‹‹agentviz/<version> chart:<kind> sha256:<hex> spec:<b64>›››` open,
-  chart body, `‹‹‹/agentviz›››` close. Default behavior is unchanged:
+  `‹‹‹charts/<version> chart:<kind> sha256:<hex> spec:<b64>›››` open,
+  chart body, `‹‹‹/charts›››` close. Default behavior is unchanged:
   without `--integrity` the output is byte-identical to 0.1.2 (back-compat).
-- feat(cli): new `agentviz verify [file]` subcommand reads a marker block
+- feat(cli): new `charts verify [file]` subcommand reads a marker block
   from a file or stdin and runs two checks:
   1. Hash check — recompute sha256(version, chart, spec, body) from the
      embedded spec and current body; reject any mismatch.
   2. Re-render check — re-render the embedded spec via
-     `renderAgentVizSpec` and compare byte-exactly to the block body;
+     `renderChartsSpec` and compare byte-exactly to the block body;
      reject any difference.
   Without re-render, anyone with `sha256sum` could fabricate a block by
   editing the body and recomputing the hash. With re-render, a passing
-  block means the body is what agentviz would produce for the embedded
-  spec on the running agentviz version — the strongest claim possible
+  block means the body is what charts would produce for the embedded
+  spec on the running charts version — the strongest claim possible
   without a server-side signing key. Reports `OK` (exit 0), `TAMPERED`
   (exit 2), `no-marker` / `malformed` (exit 2) for non-block inputs.
 - feat(verify): surfaces leading/trailing byte counts when content exists
