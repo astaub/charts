@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { readFileSync, realpathSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { renderBarChart, renderBigNumber, renderFilterSummary, renderFunnelBars, renderGroupedBarChart, renderLineChart, renderRetentionHeatmap, renderScatterPlot, renderSparkline, renderStackedBarChart, renderTable, renderWaterfallChart, } from './cli-viz/index.js';
+import { renderBarChart, renderBigNumber, renderFilterSummary, renderFunnelBars, renderGroupedBarChart, renderHistogram, renderLineChart, renderRetentionHeatmap, renderScatterPlot, renderSparkline, renderStackedBarChart, renderTable, renderWaterfallChart, } from './cli-viz/index.js';
 import { verifyIntegrity, wrapWithIntegrity } from './integrity.js';
 import { listThemes, resolveAppearance, resolveCliColorMode } from './cli-viz/theme.js';
 import { renderDashboard } from './cli-viz/dashboard.js';
@@ -44,6 +44,7 @@ const CHARTS = new Set([
     'filters',
     'funnel',
     'grouped',
+    'histogram',
     'line',
     'retention',
     'scatter',
@@ -54,7 +55,7 @@ const CHARTS = new Set([
 ]);
 // Charts rebuilt on the shared design-system panel (border/title live inside
 // the renderer). Grows as more kinds adopt the component set.
-const PANELED = new Set(['bar', 'funnel', 'line', 'retention', 'stacked', 'grouped', 'waterfall', 'bignumber', 'scatter', 'dashboard']);
+const PANELED = new Set(['bar', 'funnel', 'line', 'retention', 'stacked', 'grouped', 'histogram', 'waterfall', 'bignumber', 'scatter', 'dashboard']);
 export function renderChartsSpec(spec, chartHint, cliWidth, lineOverrides = {}, extra = {}) {
     const objectSpec = normalizeSpec(spec);
     const chart = normalizeChart(chartHint ?? objectSpec.chart);
@@ -537,6 +538,8 @@ function renderChart(spec, chart, options) {
             return renderFunnelBars(arrayFrom(spec.steps ?? spec.data, 'steps'), options);
         case 'grouped':
             return renderGroupedBarChart(arrayFrom(spec.buckets ?? spec.data, 'buckets'), options);
+        case 'histogram':
+            return renderHistogram(numberArrayFrom(spec.values ?? spec.data, 'values'), options);
         case 'line':
             return renderLineChart(arrayFrom(spec.series ?? spec.data, 'series'), options);
         case 'retention':
@@ -634,7 +637,7 @@ Usage:
   cat chart.txt | charts verify
 
 Charts:
-  bar, bignumber, filters, funnel, grouped, line, retention, scatter, sparkline, stacked, table, waterfall
+  bar, bignumber, filters, funnel, grouped, histogram, line, retention, scatter, sparkline, stacked, table, waterfall
 
 Appearance:
   --appearance light|dark|auto   Palette tuned for the terminal background.
@@ -672,6 +675,9 @@ Line input:
 
 Grouped input:
   {"buckets":[{"label":"W1","bars":[{"key":"followed","value":40},{"key":"signed_up","value":12}]}]}
+
+Histogram input:
+  {"values":[1,2,2,3,8,9],"options":{"bins":4}}
 
 Funnel input:
   {"steps":[{"label":"Visited","count":120},{"label":"Paid","count":18}]}
