@@ -43,6 +43,11 @@ export {
   type BigNumberOptions,
   type BigNumberUnit,
 } from './bignumber.js';
+export {
+  renderGauge,
+  type GaugeColorMode,
+  type GaugeOptions,
+} from './gauge.js';
 import { BrailleCanvas } from './braille.js';
 export { BrailleCanvas } from './braille.js';
 import { THEME, applyAppearance, applyTheme, bodyText, categorical, dim, fg, fgBg, heat, mutedText, ramp, rampShade, resolveColor, type AppearanceMode, type ColorMode, type RGB, type ThemeName } from './theme.js';

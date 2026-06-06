@@ -190,6 +190,7 @@ Supported charts:
 - `bignumber`
 - `filters`
 - `funnel`
+- `gauge`
 - `grouped`
 - `line`
 - `retention`
