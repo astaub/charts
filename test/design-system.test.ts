@@ -14,6 +14,7 @@ import {
   renderLineChart,
   renderRetentionHeatmap,
   renderScatterPlot,
+  sparkline,
   renderSparkline,
   renderStackedBarChart,
   renderWaterfallChart,
@@ -93,6 +94,19 @@ describe('design system — glyphs and palette', () => {
     const channelDistance =
       Math.abs(deep.r - pale.r) + Math.abs(deep.g - pale.g) + Math.abs(deep.b - pale.b);
     expect(channelDistance).toBeGreaterThan(40);
+  });
+
+  it('sparkline primitive scales values into compact block glyphs with optional color', () => {
+    const mono = makeRenderCtx({ color: 'never' });
+    expect(sparkline(mono, [10, 20, 30])).toBe('▁▅█');
+    expect(sparkline(mono, [7, 7, 7])).toBe('▅▅▅');
+    expect(sparkline(mono, [Number.NaN, Infinity])).toBe('');
+
+    const colored = sparkline(makeRenderCtx({ color: 'always', env: {} }), [10, 20, 30], {
+      color: { r: 1, g: 2, b: 3 },
+    });
+    expect(stripAnsi(colored)).toBe('▁▅█');
+    expect(colored).toBe('[38;2;1;2;3m▁[0m[38;2;1;2;3m▅[0m[38;2;1;2;3m█[0m');
   });
 });
 
