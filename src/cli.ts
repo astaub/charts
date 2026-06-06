@@ -6,6 +6,7 @@ import {
   renderBigNumber,
   renderFilterSummary,
   renderFunnelBars,
+  renderGauge,
   renderGroupedBarChart,
   renderLineChart,
   renderRetentionHeatmap,
@@ -19,6 +20,7 @@ import {
   type FilterDatum,
   type FilterSummaryOptions,
   type FunnelStepDatum,
+  type GaugeOptions,
   type GroupedBarBucketDatum,
   type GroupedBarChartOptions,
   type GroupedBarMarker,
@@ -80,6 +82,7 @@ type ChartKind =
   | 'dashboard'
   | 'filters'
   | 'funnel'
+  | 'gauge'
   | 'grouped'
   | 'line'
   | 'retention'
@@ -145,6 +148,7 @@ const CHARTS = new Set<ChartKind>([
   'dashboard',
   'filters',
   'funnel',
+  'gauge',
   'grouped',
   'line',
   'retention',
@@ -632,6 +636,8 @@ function renderChart(spec: ChartsSpec, chart: ChartKind, options: Record<string,
       } as FilterSummaryOptions);
     case 'funnel':
       return renderFunnelBars(arrayFrom<FunnelStepDatum>(spec.steps ?? spec.data, 'steps'), options);
+    case 'gauge':
+      return renderGauge(numberFrom(spec.value ?? spec.data, 'value'), gaugeOptionsFrom(options));
     case 'grouped':
       return renderGroupedBarChart(arrayFrom<GroupedBarBucketDatum>(spec.buckets ?? spec.data, 'buckets'), options as GroupedBarChartOptions);
     case 'line':
@@ -703,6 +709,12 @@ function numberOption(value: unknown): number | undefined {
   return typeof value === 'number' && Number.isFinite(value) ? value : undefined;
 }
 
+function gaugeOptionsFrom(options: Record<string, unknown>): GaugeOptions {
+  const max = numberOption(options.max);
+  if (max === undefined || max <= 0) throw new Error('gauge options.max must be a positive number');
+  return { ...options, max } as GaugeOptions;
+}
+
 function parseWidth(value: string): number {
   const width = Number(value);
   if (!Number.isFinite(width) || width <= 0) throw new Error(`invalid width: ${value}`);
@@ -736,7 +748,7 @@ Usage:
   cat chart.txt | charts verify
 
 Charts:
-  bar, bignumber, filters, funnel, grouped, line, retention, scatter, sparkline, stacked, table, waterfall
+  bar, bignumber, filters, funnel, gauge, grouped, line, retention, scatter, sparkline, stacked, table, waterfall
 
 Appearance:
   --appearance light|dark|auto   Palette tuned for the terminal background.

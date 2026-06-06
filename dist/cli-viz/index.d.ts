@@ -3,6 +3,7 @@ export { renderStackedBarChart, type StackedBarBucketDatum, type StackedBarChart
 export { renderGroupedBarChart, type GroupedBarBucketDatum, type GroupedBarChartOptions, type GroupedBarMarker, type GroupedBarSeriesDatum, type GroupedBarUnit, type GroupedBarValueFormat, } from './grouped.js';
 export { renderWaterfallChart, type WaterfallChartOptions, type WaterfallStep, type WaterfallStepKind, } from './waterfall.js';
 export { renderBigNumber, type BigNumberColorMode, type BigNumberFormat, type BigNumberOptions, type BigNumberUnit, } from './bignumber.js';
+export { renderGauge, type GaugeColorMode, type GaugeOptions, } from './gauge.js';
 export { BrailleCanvas } from './braille.js';
 import { type AppearanceMode, type ThemeName } from './theme.js';
 export * from './theme.js';

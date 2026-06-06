@@ -12,6 +12,7 @@ export { renderStackedBarChart, } from './stacked.js';
 export { renderGroupedBarChart, } from './grouped.js';
 export { renderWaterfallChart, } from './waterfall.js';
 export { renderBigNumber, } from './bignumber.js';
+export { renderGauge, } from './gauge.js';
 import { BrailleCanvas } from './braille.js';
 export { BrailleCanvas } from './braille.js';
 import { THEME, applyAppearance, applyTheme, bodyText, categorical, dim, fg, fgBg, heat, mutedText, ramp, rampShade, resolveColor } from './theme.js';

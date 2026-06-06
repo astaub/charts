@@ -48,6 +48,10 @@
       "types": "./dist/cli-viz/bignumber.d.ts",
       "default": "./dist/cli-viz/bignumber.js"
     },
+    "./gauge": {
+      "types": "./dist/cli-viz/gauge.d.ts",
+      "default": "./dist/cli-viz/gauge.js"
+    },
     "./dashboard": {
       "types": "./dist/cli-viz/dashboard.d.ts",
       "default": "./dist/cli-viz/dashboard.js"
