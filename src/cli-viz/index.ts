@@ -51,6 +51,7 @@ export * from './theme.js';
 export {
   colorLabel,
   deltaBadge,
+  horizontalBars,
   inlineSparkline,
   legend,
   meter,
@@ -59,6 +60,8 @@ export {
   sparkline,
   swatch,
   type DeltaOptions,
+  type HorizontalBarPrimitiveOptions,
+  type HorizontalBarRow,
   type LegendItem,
   type MeterRow,
   type MeterTableSpec,

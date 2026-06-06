@@ -86,6 +86,26 @@ export interface SparklinePrimitiveOptions {
   color?: RGB;
 }
 
+export interface HorizontalBarRow {
+  label: string;
+  value: number;
+  /** Optional preformatted value cell; defaults to the formatted numeric value. */
+  valueLabel?: string;
+  /** Optional bar fill color. Defaults to the shared accent. */
+  color?: RGB;
+}
+
+export interface HorizontalBarPrimitiveOptions {
+  /** Maximum rendered width in terminal columns. */
+  width: number;
+  /** Explicit scale maximum; defaults to the largest positive row value. */
+  maxValue?: number;
+  /** Fixed label column width. Defaults to a width-aware fit. */
+  labelWidth?: number;
+  /** Default fill color for rows that do not specify one. */
+  color?: RGB;
+}
+
 /**
  * A period-over-period delta indicator: `▲ 12%` / `▼ 5%` / `→ 0%`, tinted green
  * when the move is good and red when bad (mono: arrow + magnitude, no color).
@@ -140,6 +160,39 @@ export function sparkline(ctx: RenderCtx, values: number[], opts: SparklinePrimi
  */
 export function inlineSparkline(ctx: RenderCtx, values: number[], color?: RGB): string {
   return sparkline(ctx, values, color === undefined ? {} : { color });
+}
+
+/**
+ * Bare horizontal bar primitive: label · proportional meter · value label.
+ * It returns body lines (no panel chrome) and keeps every line within `width`.
+ */
+export function horizontalBars(ctx: RenderCtx, rows: HorizontalBarRow[], opts: HorizontalBarPrimitiveOptions): string[] {
+  const width = Math.max(1, Math.floor(opts.width));
+  const cleanRows = rows
+    .filter((row) => Number.isFinite(row.value))
+    .map((row) => ({
+      label: singleLine(row.label),
+      value: row.value,
+      valueLabel: singleLine(row.valueLabel ?? formatPrimitiveNumber(row.value)),
+      color: row.color ?? opts.color ?? THEME.accent,
+    }));
+  if (cleanRows.length === 0) return [];
+
+  const maxValue = opts.maxValue !== undefined && Number.isFinite(opts.maxValue)
+    ? Math.max(0, opts.maxValue)
+    : Math.max(0, ...cleanRows.map((row) => row.value));
+  const layout = horizontalBarLayout(ctx, cleanRows, width, opts.labelWidth);
+
+  return cleanRows.map((row) => {
+    const label = padEnd(ctx, ctx.truncate(row.label, layout.labelWidth), layout.labelWidth);
+    const valueLabel = ctx.truncate(row.valueLabel, layout.valueWidth);
+    if (layout.barWidth <= 0) {
+      return ctx.truncate(`${label}${layout.gap}${valueLabel}`, width);
+    }
+    const fraction = maxValue <= 0 ? 0 : Math.max(0, row.value) / maxValue;
+    const bar = meter(ctx, fraction, layout.barWidth, row.color);
+    return `${label}${layout.gap}${bar}${layout.gap}${padStart(ctx, valueLabel, layout.valueWidth)}`;
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -299,6 +352,52 @@ export function legend(ctx: RenderCtx, items: LegendItem[], width: number): stri
   }
   if (current !== '') lines.push(current);
   return lines;
+}
+
+interface HorizontalBarLayout {
+  labelWidth: number;
+  barWidth: number;
+  valueWidth: number;
+  gap: string;
+}
+
+function horizontalBarLayout(
+  ctx: RenderCtx,
+  rows: Array<{ label: string; valueLabel: string }>,
+  width: number,
+  requestedLabelWidth: number | undefined,
+): HorizontalBarLayout {
+  const gap = ' ';
+  const longestLabel = Math.max(1, ...rows.map((row) => ctx.visualWidth(row.label)));
+  const longestValue = Math.max(0, ...rows.map((row) => ctx.visualWidth(row.valueLabel)));
+
+  let labelWidth = requestedLabelWidth === undefined
+    ? Math.min(longestLabel, Math.max(1, Math.floor(width * 0.35)))
+    : Math.max(1, Math.floor(requestedLabelWidth));
+  let valueWidth = Math.min(longestValue, Math.max(0, Math.floor(width * 0.25)));
+  let barWidth = width - labelWidth - valueWidth - gap.length * 2;
+
+  if (barWidth < 1) {
+    valueWidth = Math.min(longestValue, Math.max(0, Math.floor(width * 0.3)));
+    labelWidth = Math.min(labelWidth, Math.max(1, width - valueWidth - gap.length - 1));
+    barWidth = width - labelWidth - valueWidth - gap.length * 2;
+  }
+
+  if (barWidth < 1) {
+    valueWidth = Math.min(valueWidth, Math.max(0, width - 2));
+    labelWidth = Math.max(0, width - valueWidth - gap.length);
+    barWidth = 0;
+  }
+
+  return { labelWidth, barWidth, valueWidth, gap };
+}
+
+function formatPrimitiveNumber(value: number): string {
+  return new Intl.NumberFormat('en-US', { maximumFractionDigits: 1 }).format(value);
+}
+
+function singleLine(value: string): string {
+  return value.replace(/\r?\n/g, ' ').replace(/\s+/g, ' ').trim();
 }
 
 // ---------------------------------------------------------------------------

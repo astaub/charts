@@ -3,6 +3,8 @@ import {
   renderBarChart,
   renderFilterSummary,
   renderFunnelBars,
+  horizontalBars,
+  makeRenderCtx,
   renderLineChart,
   renderRetentionHeatmap,
   renderSparkline,
@@ -966,6 +968,25 @@ describe('cli-viz primitives', () => {
     expect(hugeBarAtBoundary).toContain('123,456,789,012,345');
     expect(hugeBarAtBoundary).not.toContain('~');
     expect(renderBarChart([{ label: 'Zero baseline', value: 10, denominator: 0 }], { width: 54 })).toContain('0%');
+  });
+
+  it('renders horizontal bar primitive with labels, values, ANSI color, and width fit', () => {
+    const ctx = makeRenderCtx({ color: 'always', env: {} });
+    const lines = horizontalBars(ctx, [
+      { label: 'Organic search', value: 320, valueLabel: '320 users', color: { r: 10, g: 120, b: 240 } },
+      { label: 'BD referral', value: 160, valueLabel: '160 users', color: { r: 240, g: 120, b: 10 } },
+    ], { width: 42 });
+    const output = lines.join('\n');
+
+    expect(output).toContain('Organic search');
+    expect(output).toContain('320 users');
+    expect(ANSI_PATTERN.test(output)).toBe(true);
+
+    const [first, second] = lines.map(stripAnsi);
+    expect((first?.match(/█/g) ?? []).length).toBeGreaterThan((second?.match(/█/g) ?? []).length);
+    for (const line of lines) {
+      expect(stripAnsi(line).length).toBeLessThanOrEqual(42);
+    }
   });
 
   it('frame:false emits a bare body — no panel box (host draws its own chrome)', () => {
