@@ -6,7 +6,7 @@ export { renderBigNumber, type BigNumberColorMode, type BigNumberFormat, type Bi
 export { BrailleCanvas } from './braille.js';
 import { type AppearanceMode, type ThemeName } from './theme.js';
 export * from './theme.js';
-export { colorLabel, deltaBadge, inlineSparkline, legend, meter, meterTable, panel, swatch, type DeltaOptions, type LegendItem, type MeterRow, type MeterTableSpec, type PanelOptions, type RenderCtx, } from './components.js';
+export { colorLabel, deltaBadge, inlineSparkline, legend, meter, meterTable, panel, sparkline, swatch, type DeltaOptions, type LegendItem, type MeterRow, type MeterTableSpec, type PanelOptions, type RenderCtx, type SparklinePrimitiveOptions, } from './components.js';
 export { makeRenderCtx } from './render-context.js';
 export type CliVizColorMode = 'never' | 'auto' | 'always';
 export type CliVizAlign = 'left' | 'right';

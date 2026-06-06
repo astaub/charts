@@ -26,6 +26,10 @@ export interface DeltaOptions {
     /** Render the magnitude as a signed number instead of a percentage. */
     as?: 'percent' | 'number';
 }
+export interface SparklinePrimitiveOptions {
+    /** Fixed glyph color. Defaults to the sequential ramp by height. */
+    color?: RGB;
+}
 /**
  * A period-over-period delta indicator: `▲ 12%` / `▼ 5%` / `→ 0%`, tinted green
  * when the move is good and red when bad (mono: arrow + magnitude, no color).
@@ -35,9 +39,14 @@ export interface DeltaOptions {
  */
 export declare function deltaBadge(ctx: RenderCtx, change: number, opts?: DeltaOptions): string;
 /**
- * A bare inline sparkline (no label / endpoints) for embedding in a tile or row.
- * Color mode tints each glyph along the ramp by its height; mono is plain
- * block glyphs. Returns '' when there is no finite data.
+ * A bare single-line sparkline (no label / endpoints) for embedding in a tile or row.
+ * Color mode tints each glyph along the ramp by its height unless a fixed color
+ * is supplied; mono is plain block glyphs. Returns '' when there is no finite data.
+ */
+export declare function sparkline(ctx: RenderCtx, values: number[], opts?: SparklinePrimitiveOptions): string;
+/**
+ * Compatibility wrapper for the original growth primitive name.
+ * Prefer {@link sparkline} for new callers.
  */
 export declare function inlineSparkline(ctx: RenderCtx, values: number[], color?: RGB): string;
 export declare function meter(ctx: RenderCtx, fraction: number, cells: number, color: RGB, referenceAt?: number): string;

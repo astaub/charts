@@ -56,6 +56,7 @@ export {
   meter,
   meterTable,
   panel,
+  sparkline,
   swatch,
   type DeltaOptions,
   type LegendItem,
@@ -63,6 +64,7 @@ export {
   type MeterTableSpec,
   type PanelOptions,
   type RenderCtx,
+  type SparklinePrimitiveOptions,
 } from './components.js';
 export { makeRenderCtx } from './render-context.js';
 

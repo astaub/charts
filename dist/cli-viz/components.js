@@ -60,11 +60,11 @@ export function deltaBadge(ctx, change, opts = {}) {
     return fg(good ? THEME.positive : THEME.negative, text);
 }
 /**
- * A bare inline sparkline (no label / endpoints) for embedding in a tile or row.
- * Color mode tints each glyph along the ramp by its height; mono is plain
- * block glyphs. Returns '' when there is no finite data.
+ * A bare single-line sparkline (no label / endpoints) for embedding in a tile or row.
+ * Color mode tints each glyph along the ramp by its height unless a fixed color
+ * is supplied; mono is plain block glyphs. Returns '' when there is no finite data.
  */
-export function inlineSparkline(ctx, values, color) {
+export function sparkline(ctx, values, opts = {}) {
     const finite = values.filter((value) => Number.isFinite(value));
     if (finite.length === 0)
         return '';
@@ -80,9 +80,16 @@ export function inlineSparkline(ctx, values, color) {
     return finite
         .map((value) => {
         const { glyph, t } = glyphFor(value);
-        return fg(color ?? ramp(1 - t), glyph);
+        return fg(opts.color ?? ramp(1 - t), glyph);
     })
         .join('');
+}
+/**
+ * Compatibility wrapper for the original growth primitive name.
+ * Prefer {@link sparkline} for new callers.
+ */
+export function inlineSparkline(ctx, values, color) {
+    return sparkline(ctx, values, color === undefined ? {} : { color });
 }
 // ---------------------------------------------------------------------------
 // Meter — a sub-cell-precise horizontal bar with a faint track, colored fill.
