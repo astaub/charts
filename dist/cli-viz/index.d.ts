@@ -1,6 +1,7 @@
 export { renderScatterPlot, type ScatterPlotOptions, type ScatterPlotPoint, type ScatterQuadrantLabels, type ScatterValueFormat, } from './scatter.js';
 export { renderStackedBarChart, type StackedBarBucketDatum, type StackedBarChartOptions, type StackedBarSegmentDatum, } from './stacked.js';
 export { renderGroupedBarChart, type GroupedBarBucketDatum, type GroupedBarChartOptions, type GroupedBarMarker, type GroupedBarSeriesDatum, type GroupedBarUnit, type GroupedBarValueFormat, } from './grouped.js';
+export { bucketValues, renderHistogram, type HistogramBinDatum, type HistogramOptions, } from './histogram.js';
 export { renderWaterfallChart, type WaterfallChartOptions, type WaterfallStep, type WaterfallStepKind, } from './waterfall.js';
 export { renderBigNumber, type BigNumberColorMode, type BigNumberFormat, type BigNumberOptions, type BigNumberUnit, } from './bignumber.js';
 export { BrailleCanvas } from './braille.js';

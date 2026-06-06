@@ -36,6 +36,10 @@
       "types": "./dist/cli-viz/grouped.d.ts",
       "default": "./dist/cli-viz/grouped.js"
     },
+    "./histogram": {
+      "types": "./dist/cli-viz/histogram.d.ts",
+      "default": "./dist/cli-viz/histogram.js"
+    },
     "./waterfall": {
       "types": "./dist/cli-viz/waterfall.d.ts",
       "default": "./dist/cli-viz/waterfall.js"

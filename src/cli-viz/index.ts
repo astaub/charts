@@ -31,6 +31,12 @@ export {
   type GroupedBarValueFormat,
 } from './grouped.js';
 export {
+  bucketValues,
+  renderHistogram,
+  type HistogramBinDatum,
+  type HistogramOptions,
+} from './histogram.js';
+export {
   renderWaterfallChart,
   type WaterfallChartOptions,
   type WaterfallStep,

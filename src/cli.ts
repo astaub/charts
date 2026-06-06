@@ -7,6 +7,7 @@ import {
   renderFilterSummary,
   renderFunnelBars,
   renderGroupedBarChart,
+  renderHistogram,
   renderLineChart,
   renderRetentionHeatmap,
   renderScatterPlot,
@@ -22,6 +23,7 @@ import {
   type GroupedBarBucketDatum,
   type GroupedBarChartOptions,
   type GroupedBarMarker,
+  type HistogramOptions,
   type LineChartLineStyle,
   type LineChartSeries,
   type LineChartShade,
@@ -81,6 +83,7 @@ type ChartKind =
   | 'filters'
   | 'funnel'
   | 'grouped'
+  | 'histogram'
   | 'line'
   | 'retention'
   | 'scatter'
@@ -146,6 +149,7 @@ const CHARTS = new Set<ChartKind>([
   'filters',
   'funnel',
   'grouped',
+  'histogram',
   'line',
   'retention',
   'scatter',
@@ -157,7 +161,7 @@ const CHARTS = new Set<ChartKind>([
 
 // Charts rebuilt on the shared design-system panel (border/title live inside
 // the renderer). Grows as more kinds adopt the component set.
-const PANELED = new Set<ChartKind>(['bar', 'funnel', 'line', 'retention', 'stacked', 'grouped', 'waterfall', 'bignumber', 'scatter', 'dashboard']);
+const PANELED = new Set<ChartKind>(['bar', 'funnel', 'line', 'retention', 'stacked', 'grouped', 'histogram', 'waterfall', 'bignumber', 'scatter', 'dashboard']);
 
 export interface RenderChartsSpecOptions {
   integrity?: boolean;
@@ -634,6 +638,8 @@ function renderChart(spec: ChartsSpec, chart: ChartKind, options: Record<string,
       return renderFunnelBars(arrayFrom<FunnelStepDatum>(spec.steps ?? spec.data, 'steps'), options);
     case 'grouped':
       return renderGroupedBarChart(arrayFrom<GroupedBarBucketDatum>(spec.buckets ?? spec.data, 'buckets'), options as GroupedBarChartOptions);
+    case 'histogram':
+      return renderHistogram(numberArrayFrom(spec.values ?? spec.data, 'values'), options as HistogramOptions);
     case 'line':
       return renderLineChart(arrayFrom<LineChartSeries>(spec.series ?? spec.data, 'series'), options);
     case 'retention':
@@ -736,7 +742,7 @@ Usage:
   cat chart.txt | charts verify
 
 Charts:
-  bar, bignumber, filters, funnel, grouped, line, retention, scatter, sparkline, stacked, table, waterfall
+  bar, bignumber, filters, funnel, grouped, histogram, line, retention, scatter, sparkline, stacked, table, waterfall
 
 Appearance:
   --appearance light|dark|auto   Palette tuned for the terminal background.
@@ -774,6 +780,9 @@ Line input:
 
 Grouped input:
   {"buckets":[{"label":"W1","bars":[{"key":"followed","value":40},{"key":"signed_up","value":12}]}]}
+
+Histogram input:
+  {"values":[1,2,2,3,8,9],"options":{"bins":4}}
 
 Funnel input:
   {"steps":[{"label":"Visited","count":120},{"label":"Paid","count":18}]}

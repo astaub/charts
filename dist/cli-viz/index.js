@@ -10,6 +10,7 @@ const BRAILLE_BLANK = '⠀';
 export { renderScatterPlot, } from './scatter.js';
 export { renderStackedBarChart, } from './stacked.js';
 export { renderGroupedBarChart, } from './grouped.js';
+export { bucketValues, renderHistogram, } from './histogram.js';
 export { renderWaterfallChart, } from './waterfall.js';
 export { renderBigNumber, } from './bignumber.js';
 import { BrailleCanvas } from './braille.js';
