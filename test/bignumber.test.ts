@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { renderBigNumber, stripAnsi } from '../src/cli-viz';
+import { resolveColorEnabled } from '../src/cli-viz/bignumber';
 
 describe('renderBigNumber', () => {
   it('renders label as the tile heading + formatted value', () => {
@@ -49,9 +50,34 @@ describe('renderBigNumber', () => {
     expect(out).toContain('[38;2;45;198;130m');
   });
 
+  it('resolves bignumber color mode from explicit mode, tty, and NO_COLOR', () => {
+    expect(resolveColorEnabled({ color: 'never', isTTY: true, env: {} })).toBe(false);
+    expect(resolveColorEnabled({ color: 'always', isTTY: false, env: {} })).toBe(true);
+    expect(resolveColorEnabled({ color: 'always', env: { NO_COLOR: '1' } })).toBe(false);
+    expect(resolveColorEnabled({ color: 'auto', isTTY: true, env: {} })).toBe(true);
+    expect(resolveColorEnabled({ color: 'auto', isTTY: false, env: {} })).toBe(false);
+    expect(resolveColorEnabled({ env: {} })).toBe(false);
+  });
+
   it('renders a sparkline when a series is supplied', () => {
     const out = renderBigNumber(1234, { sparkline: [800, 900, 1102, 1050, 1234] });
     expect(out).toMatch(/[▁▂▃▄▅▆▇█]/);
+  });
+
+  it('renders a bare body for dashboard hosts without double-framing', () => {
+    const out = renderBigNumber(1234, {
+      label: 'Weekly signups',
+      previous: 1102,
+      sparkline: [800, 900, 1102, 1050, 1234],
+      frame: false,
+    });
+
+    expect(out).not.toContain('╭');
+    expect(out).not.toContain('│');
+    expect(out).not.toContain('Weekly signups');
+    expect(out.split('\n')[0]).toBe('1,234   ▲ 12%');
+    expect(out.split('\n')[1]).toContain('vs 1,102');
+    expect(out.split('\n')[1]).toMatch(/[▁▂▃▄▅▆▇█]/);
   });
 
   it('handles a zero previous without dividing by zero', () => {

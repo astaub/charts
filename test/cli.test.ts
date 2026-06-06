@@ -53,6 +53,112 @@ describe('charts cli renderer', () => {
     expect(output).toContain('15%');
   });
 
+  it('renders a bignumber spec as a titled KPI tile', () => {
+    const output = renderChartsSpec({
+      chart: 'bignumber',
+      title: 'Weekly signups',
+      value: 1234,
+      options: {
+        previous: 1102,
+        sparkline: [800, 900, 1102, 1050, 1234],
+      },
+    }, undefined, 48);
+
+    expect(output.split('\n')[0]).toContain('╭─ Weekly signups');
+    expect(output).toContain('1,234');
+    expect(output).toContain('▲ 12%');
+    expect(output).toContain('vs 1,102');
+    expect(output).toMatch(/[▁▂▃▄▅▆▇█]/);
+    for (const line of output.split('\n')) expect([...line].length).toBeLessThanOrEqual(48);
+  });
+
+  it('renders a dashboard spec with a KPI panel and responsive bar fallback', () => {
+    const output = renderChartsSpec({
+      chart: 'dashboard',
+      title: 'Growth dashboard',
+      rows: [
+        {
+          panels: [
+            {
+              chart: 'bignumber',
+              title: 'Signups',
+              value: 1234,
+              options: { previous: 1102 },
+            },
+            {
+              chart: 'bar',
+              title: 'Sources',
+              rows: [
+                { label: 'Organic', value: 60 },
+                { label: 'Partner', value: 40 },
+              ],
+            },
+          ],
+        },
+      ],
+    }, undefined, 104);
+
+    expect(output).toContain('Growth dashboard');
+    expect(output).toContain('╭─ Signups');
+    expect(output).toContain('1,234');
+    expect(output).toContain('▲ 12%');
+    expect(output).toContain('1. Organic');
+    expect(output).toContain('value: 60 / 100 (60%)');
+    expect(output).toContain('2. Partner');
+    expect(output).toContain('value: 40 / 100 (40%)');
+    for (const line of output.split('\n')) expect([...line].length).toBeLessThanOrEqual(104);
+  });
+
+  it('renders filters as the primary chart without attaching a duplicate filter block', () => {
+    const output = renderChartsSpec({
+      chart: 'filters',
+      filters: [
+        { scope: 'event', field: '$pageview', source: 'PostHog' },
+        { scope: 'property', field: '$current_url', operator: 'contains', value: '/pricing' },
+      ],
+      suggestions: [
+        { scope: 'cohort', field: 'company_age_hours', operator: '<=', value: 24, reason: 'new accounts' },
+      ],
+    }, undefined, 72);
+
+    expect(output.match(/Filters/g)).toHaveLength(1);
+    expect(output).toContain('- event: $pageview (PostHog)');
+    expect(output).toContain('property: $current_url contains /pricing');
+    expect(output).toContain('Suggested filters');
+    expect(output).toContain('company_age_hours <= 24 - new accounts');
+  });
+
+  it('renders sparkline specs from the data alias', () => {
+    const output = renderChartsSpec({
+      chart: 'sparkline',
+      data: [1, 2, 3, 5, 8],
+    }, undefined, 40);
+
+    expect(output).toBe('Sparkline: _▁▂▅█ 1 → 8');
+  });
+
+  it('renders table specs with an external title and fixed-width rows', () => {
+    const output = renderChartsSpec({
+      chart: 'table',
+      title: 'Top sources by activation',
+      rows: [
+        { source: 'Organic', users: 1200, rate: 0.42 },
+        { source: 'Partner', users: 320, rate: 0.31 },
+      ],
+      columns: [
+        { key: 'source', label: 'Source' },
+        { key: 'users', label: 'Users', format: 'number' },
+        { key: 'rate', label: 'Rate', format: 'percent' },
+      ],
+    }, undefined, 44);
+
+    expect(output.split('\n')[0]).toBe('Top sources by activation');
+    expect(output).toContain('Organic');
+    expect(output).toContain('1,200');
+    expect(output).toContain('42%');
+    for (const line of output.split('\n')) expect([...line].length).toBeLessThanOrEqual(44);
+  });
+
   it('parses chart, file, and width arguments', () => {
     expect(parseChartsArgs(['line', 'chart.json', '--width', '96'])).toEqual({
       chart: 'line',
